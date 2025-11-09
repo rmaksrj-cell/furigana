@@ -28,13 +28,17 @@ button { padding:8px 12px; border:none; border-radius:6px; cursor:pointer; }
   </div>
 
   <div class="box" id="historyBox">
-    <h4>📝 확정 문장 내역</h4>
+    <h4>📜 확정 문장 내역</h4>
     <div id="historyList">여기에 문장이 쌓입니다</div>
     <button id="clearHistory" style="margin-top:8px; background:#999; color:#fff;">내역 초기화</button>
   </div>
 </div>
 
 <div class="box" style="margin-top:20px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+    <h4 style="margin:0;">📝 일본어 문장 입력</h4>
+    <button id="clearInput" style="background:#ff5252; color:#fff; padding:6px 12px;">초기화</button>
+  </div>
   <textarea id="input"></textarea>
   <div style="margin-top:10px;">
     <button id="convertBtn" style="background:#ff79a8; color:#fff;">변환하기 (후리가나 + 발음 + 해석)</button>
@@ -59,9 +63,9 @@ let mediaRecorder;
 let chunks = [];
 let clientSentences = []; // 확정된 문장 내역 (클라이언트 측)
 const rmsThreshold = 0.01;
+let recordingTimer = null; // 타이머 추가
 
 async function rms(blob){
-    // (이하 RMS 계산 로직 동일)
     const ab = await blob.arrayBuffer();
     const ctx = new AudioContext();
     const audio = await ctx.decodeAudioData(ab);
@@ -77,12 +81,17 @@ document.getElementById("toggleSTT").onclick = async () => {
         const stream = await navigator.mediaDevices.getUserMedia({audio:true});
         mediaRecorder = new MediaRecorder(stream, {mimeType:"audio/webm;codecs=opus"});
         isRecording = true;
+        chunks = [];
         document.getElementById("toggleSTT").textContent = "⏹️ STT 중지";
         document.getElementById("statusText").textContent = "🎙️ 듣는 중...";
 
-        mediaRecorder.ondataavailable = e => { if(e.data.size>0) chunks.push(e.data); };
+        mediaRecorder.ondataavailable = e => { 
+            if(e.data.size>0) chunks.push(e.data); 
+        };
 
         mediaRecorder.onstop = async () => {
+            if(!isRecording) return; // 완전 중지된 경우 처리 안 함
+            
             if(chunks.length === 0){ restart(); return; }
             const blob = new Blob(chunks, {type:"audio/webm"});
             chunks = [];
@@ -95,7 +104,6 @@ document.getElementById("toggleSTT").onclick = async () => {
             
             let data;
             try {
-                // ✅ (수정) 로컬 Python 서버로 직접 요청
                 const resp = await fetch(WHISPER_URL, {method:"POST", body:fd});
                 data = await resp.json();
                 if (!resp.ok) {
@@ -113,41 +121,35 @@ document.getElementById("toggleSTT").onclick = async () => {
                 return; 
             }
 
-            // ✅ (수정) '누적' 대신 '개별' 문장으로 히스토리 쌓기
-            // 1. 서버에서 받은 '방금 인식된 텍스트(partial_text)'를 가져옵니다.
             const newText = data.partial_text.trim();
 
             if (newText) {
-                // 2. 실시간 텍스트 상자를 새 텍스트로 업데이트합니다.
                 document.getElementById("realtimeText").innerHTML = `<div class="live-sentence">${newText}</div>`;
-                
-                // 3. 클라이언트의 'clientSentences' 배열에 새 텍스트를 '추가'합니다.
                 clientSentences.push(newText);
-                
-                // 4. 히스토리 목록을 다시 렌더링합니다.
                 renderHistory();
             }
-
-            /* // ❌ 기존의 누적 방식 (Python 서버의 merged_sentences를 그대로 사용)
-            if(data.merged_sentences){
-                clientSentences = data.merged_sentences.map(s => s.text.trim());
-                renderHistory();
-                const last = clientSentences.at(-1) || "";
-                document.getElementById("realtimeText").innerHTML = `<div class="live-sentence">${last}</div>`;
-            }
-            */
 
             restart();
         };
 
         function restart(){
             if(!isRecording) return;
+            chunks = []; // 청크 초기화
             mediaRecorder.start();
-            setTimeout(()=>{ if(isRecording) mediaRecorder.stop(); }, 2500);
+            if(recordingTimer) clearTimeout(recordingTimer);
+            recordingTimer = setTimeout(()=>{ 
+                if(isRecording && mediaRecorder.state === "recording") {
+                    mediaRecorder.stop(); 
+                }
+            }, 3000); // 3초로 증가
         }
 
         mediaRecorder.start();
-        setTimeout(()=>{ if(isRecording) mediaRecorder.stop(); }, 2500);
+        recordingTimer = setTimeout(()=>{ 
+            if(isRecording && mediaRecorder.state === "recording") {
+                mediaRecorder.stop(); 
+            }
+        }, 3000); // 3초로 증가
 
     } catch (err) {
         console.error("Failed to get audio stream", err);
@@ -160,9 +162,14 @@ document.getElementById("toggleSTT").onclick = async () => {
 function stopSTT(){
     if (mediaRecorder && isRecording) {
         isRecording = false;
+        if(recordingTimer) {
+            clearTimeout(recordingTimer);
+            recordingTimer = null;
+        }
         try {
-            mediaRecorder.stop();
-            // 스트림의 트랙을 중지하여 마이크 아이콘을 끔
+            if(mediaRecorder.state === "recording") {
+                mediaRecorder.stop();
+            }
             mediaRecorder.stream.getTracks().forEach(track => track.stop());
         } catch (e) {
             console.warn("MediaRecorder stop/stream stop error:", e);
@@ -174,21 +181,20 @@ function stopSTT(){
 
 function renderHistory(){
     const box = document.getElementById("historyList");
-    box.innerHTML = ""; // 기존 내역 지우기
+    box.innerHTML = "";
     clientSentences.forEach((t,i) => {
         const d = document.createElement("div");
         d.className="history-sentence";
         d.textContent = (i+1)+". "+t;
         d.onclick = () => {
-            // 텍스트 클릭 시 입력창에 추가 (줄바꿈 포함)
             const input = document.getElementById("input");
             input.value += (input.value ? "\n" : "") + t;
-            input.scrollTop = input.scrollHeight; // 스크롤을 맨 아래로
+            input.scrollTop = input.scrollHeight;
         };
         box.appendChild(d);
     });
     if (clientSentences.length > 0) {
-        box.scrollTop = box.scrollHeight; // 스크롤을 맨 아래로
+        box.scrollTop = box.scrollHeight;
     } else {
         box.textContent="여기에 문장이 쌓입니다";
     }
@@ -200,17 +206,18 @@ document.getElementById("clearHistory").onclick = ()=>{
     document.getElementById("realtimeText").innerHTML = "대기 중...";
 };
 
-// ✅ (수정) 에러 핸들링 및 로딩 표시 추가
+document.getElementById("clearInput").onclick = ()=>{
+    document.getElementById("input").value = "";
+};
+
 document.getElementById("convertBtn").onclick = async ()=>{
     const text=document.getElementById("input").value.trim();
     if(!text) return;
 
-    // 로딩 표시
     document.getElementById("output_main").textContent="변환 중... (Render 서버 호출)";
     document.getElementById("output_breakdown").textContent="";
 
     try {
-        // ✅ (수정) 라이브 Render 서버로 직접 요청
         const r=await fetch(FURIGANA_URL,{
             method:"POST", headers:{"Content-Type":"application/json"},
             body:JSON.stringify({text})
