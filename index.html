@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Furigana STT - A Mode</title>
+<style>
+body { font-family: sans-serif; margin: 20px; background: #fff; }
+.container { display: flex; gap: 20px; }
+.box { background: #fafafa; padding: 14px; border-radius: 8px; box-shadow: 0 0 4px rgba(0,0,0,0.08); }
+#realtimeBox { flex: 1; background:#111; color:#fff; min-height:180px; border-radius:8px; padding:16px; }
+#realtimeText .live-sentence { padding: 8px; background: rgba(255,255,255,0.08); border-left:3px solid #ff79a8; border-radius:6px; margin-bottom:8px; }
+#historyBox { flex: 1; max-height: 350px; overflow-y: auto; }
+.history-sentence { background:#f0f0f0; padding:6px 10px; border-radius:6px; margin-bottom:6px; border-left:3px solid #4caf50; cursor:pointer; }
+.history-sentence:hover { background:#e8f5e9; }
+textarea { width:100%; height:120px; border-radius:6px; padding:10px; border:1px solid #ccc; }
+button { padding:8px 12px; border:none; border-radius:6px; cursor:pointer; }
+#toggleSTT { background:#4caf50; color:#fff; }
+</style>
+</head>
+<body>
+
+<h2>🎧 실시간 일본어 받아쓰기 (A 버전)</h2>
+
+<div class="container">
+  <div id="realtimeBox">
+    <div id="realtimeText">대기 중...</div>
+    <div id="statusText" style="font-size:12px; opacity:0.7;">STT 시작 버튼을 눌러주세요</div>
+  </div>
+
+  <div class="box" id="historyBox">
+    <h4>📝 확정 문장 내역</h4>
+    <div id="historyList">여기에 문장이 쌓입니다</div>
+    <button id="clearHistory" style="margin-top:8px; background:#999; color:#fff;">내역 초기화</button>
+  </div>
+</div>
+
+<div class="box" style="margin-top:20px;">
+  <textarea id="input"></textarea>
+  <div style="margin-top:10px;">
+    <button id="convertBtn" style="background:#ff79a8; color:#fff;">변환하기 (후리가나 + 발음 + 해석)</button>
+    <button id="toggleSTT">🎤 STT 시작</button>
+  </div>
+</div>
+
+<div class="box" style="margin-top:20px;">
+  <h3>변환 결과</h3>
+  <pre id="output_main"></pre>
+  <pre id="output_breakdown"></pre>
+</div>
+
+<script>
+// ✅ (수정) Whisper URL을 로컬 Python 서버(5000번 포트)로 직접 지정
+const WHISPER_URL = "http://localhost:5000/whisper_stream";
+// ✅ (수정) Furigana URL을 라이브 Render 서버로 직접 지정
+const FURIGANA_URL = "https://furigana-0ljx.onrender.com/furigana";
+
+let isRecording = false;
+let mediaRecorder;
+let chunks = [];
+let clientSentences = []; // 확정된 문장 내역 (클라이언트 측)
+const rmsThreshold = 0.01;
+
+async function rms(blob){
+    // (이하 RMS 계산 로직 동일)
+    const ab = await blob.arrayBuffer();
+    const ctx = new AudioContext();
+    const audio = await ctx.decodeAudioData(ab);
+    const data = audio.getChannelData(0);
+    let sum=0; for(let i=0;i<data.length;i++) sum+=data[i]*data[i];
+    return Math.sqrt(sum/data.length);
+}
+
+document.getElementById("toggleSTT").onclick = async () => {
+    if(isRecording){ stopSTT(); return; }
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+        mediaRecorder = new MediaRecorder(stream, {mimeType:"audio/webm;codecs=opus"});
+        isRecording = true;
+        document.getElementById("toggleSTT").textContent = "⏹️ STT 중지";
+        document.getElementById("statusText").textContent = "🎙️ 듣는 중...";
+
+        mediaRecorder.ondataavailable = e => { if(e.data.size>0) chunks.push(e.data); };
+
+        mediaRecorder.onstop = async () => {
+            if(chunks.length === 0){ restart(); return; }
+            const blob = new Blob(chunks, {type:"audio/webm"});
+            chunks = [];
+
+            const val = await rms(blob);
+            if(val < rmsThreshold){ restart(); return; } // ✅ 무음 완전차단
+
+            const fd = new FormData();
+            fd.append("audio", blob, "chunk.webm");
+            
+            let data;
+            try {
+                // ✅ (수정) 로컬 Python 서버로 직접 요청
+                const resp = await fetch(WHISPER_URL, {method:"POST", body:fd});
+                data = await resp.json();
+                if (!resp.ok) {
+                    throw new Error(data.error || `Whisper API Error ${resp.status}`);
+                }
+            } catch (err) {
+                console.error("Whisper Error:", err);
+                document.getElementById("statusText").textContent = `에러: ${err.message}. (Python 서버가 실행 중인지 확인하세요)`;
+                restart();
+                return;
+            }
+
+            if(data.note === "silence_skipped" || !data.partial_text){ 
+                restart(); 
+                return; 
+            }
+
+            // ✅ (수정) '누적' 대신 '개별' 문장으로 히스토리 쌓기
+            // 1. 서버에서 받은 '방금 인식된 텍스트(partial_text)'를 가져옵니다.
+            const newText = data.partial_text.trim();
+
+            if (newText) {
+                // 2. 실시간 텍스트 상자를 새 텍스트로 업데이트합니다.
+                document.getElementById("realtimeText").innerHTML = `<div class="live-sentence">${newText}</div>`;
+                
+                // 3. 클라이언트의 'clientSentences' 배열에 새 텍스트를 '추가'합니다.
+                clientSentences.push(newText);
+                
+                // 4. 히스토리 목록을 다시 렌더링합니다.
+                renderHistory();
+            }
+
+            /* // ❌ 기존의 누적 방식 (Python 서버의 merged_sentences를 그대로 사용)
+            if(data.merged_sentences){
+                clientSentences = data.merged_sentences.map(s => s.text.trim());
+                renderHistory();
+                const last = clientSentences.at(-1) || "";
+                document.getElementById("realtimeText").innerHTML = `<div class="live-sentence">${last}</div>`;
+            }
+            */
+
+            restart();
+        };
+
+        function restart(){
+            if(!isRecording) return;
+            mediaRecorder.start();
+            setTimeout(()=>{ if(isRecording) mediaRecorder.stop(); }, 2500);
+        }
+
+        mediaRecorder.start();
+        setTimeout(()=>{ if(isRecording) mediaRecorder.stop(); }, 2500);
+
+    } catch (err) {
+        console.error("Failed to get audio stream", err);
+        document.getElementById("statusText").textContent = "오디오 장치를 찾을 수 없습니다.";
+        isRecording = false;
+        document.getElementById("toggleSTT").textContent = "🎤 STT 시작";
+    }
+};
+
+function stopSTT(){
+    if (mediaRecorder && isRecording) {
+        isRecording = false;
+        try {
+            mediaRecorder.stop();
+            // 스트림의 트랙을 중지하여 마이크 아이콘을 끔
+            mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        } catch (e) {
+            console.warn("MediaRecorder stop/stream stop error:", e);
+        }
+    }
+    document.getElementById("toggleSTT").textContent = "🎤 STT 시작";
+    document.getElementById("statusText").textContent = "중지됨";
+}
+
+function renderHistory(){
+    const box = document.getElementById("historyList");
+    box.innerHTML = ""; // 기존 내역 지우기
+    clientSentences.forEach((t,i) => {
+        const d = document.createElement("div");
+        d.className="history-sentence";
+        d.textContent = (i+1)+". "+t;
+        d.onclick = () => {
+            // 텍스트 클릭 시 입력창에 추가 (줄바꿈 포함)
+            const input = document.getElementById("input");
+            input.value += (input.value ? "\n" : "") + t;
+            input.scrollTop = input.scrollHeight; // 스크롤을 맨 아래로
+        };
+        box.appendChild(d);
+    });
+    if (clientSentences.length > 0) {
+        box.scrollTop = box.scrollHeight; // 스크롤을 맨 아래로
+    } else {
+        box.textContent="여기에 문장이 쌓입니다";
+    }
+}
+
+document.getElementById("clearHistory").onclick = ()=>{
+    clientSentences=[];
+    document.getElementById("historyList").textContent="여기에 문장이 쌓입니다";
+    document.getElementById("realtimeText").innerHTML = "대기 중...";
+};
+
+// ✅ (수정) 에러 핸들링 및 로딩 표시 추가
+document.getElementById("convertBtn").onclick = async ()=>{
+    const text=document.getElementById("input").value.trim();
+    if(!text) return;
+
+    // 로딩 표시
+    document.getElementById("output_main").textContent="변환 중... (Render 서버 호출)";
+    document.getElementById("output_breakdown").textContent="";
+
+    try {
+        // ✅ (수정) 라이브 Render 서버로 직접 요청
+        const r=await fetch(FURIGANA_URL,{
+            method:"POST", headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({text})
+        });
+        const d=await r.json();
+        
+        if (!r.ok) {
+            throw new Error(d.error || `API Error ${r.status}`);
+        }
+
+        document.getElementById("output_main").textContent=d.original||"";
+        document.getElementById("output_breakdown").textContent=d.analysis||"";
+    } catch (err) {
+        console.error("Furigana Error:", err);
+        document.getElementById("output_main").textContent = `에러: ${err.message}. (Render 서버가 활성화 상태인지 확인하세요)`;
+        document.getElementById("output_breakdown").textContent = "";
+    }
+};
+</script>
+</body>
+</html>
