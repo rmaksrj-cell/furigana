@@ -55,18 +55,19 @@ button { padding:8px 12px; border:none; border-radius:6px; cursor:pointer; }
 </div>
 
 <script>
-// ✅ 1. WHISPER_URL을 로컬 Flask 대신 Render 서버의 프록시 엔드포인트로 변경
-const WHISPER_URL = "https://furigana-0ljx.onrender.com/whisper";
-const FURIGANA_URL = "https://furigana-0ljx.onrender.com/furigana";
+// ✅ (수정됨) WHISPER_URL을 사용자가 확인해준 새 Render 서버 주소로 변경
+const WHISPER_URL = "https://fur-qar7.onrender.com/whisper";
+// ✅ (수정됨) FURIGANA_URL을 사용자가 확인해준 새 Render 서버 주소로 변경
+const FURIGANA_URL = "https://fur-qar7.onrender.com/furigana";
 
 let isRecording = false;
 let mediaRecorder;
 let chunks = [];
 let clientSentences = [];
-const rmsThreshold = 0.005; // 더 낮은 임계값으로 조정
+const rmsThreshold = 0.005; 
 let recordingTimer = null;
-let sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; // 세션 ID 생성
-let currentSentenceBuffer = ""; // 현재 누적 중인 문장
+let sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; 
+let currentSentenceBuffer = ""; 
 
 async function rms(blob){
     try {
@@ -79,7 +80,7 @@ async function rms(blob){
         return Math.sqrt(sum/data.length);
     } catch(e) {
         console.warn("RMS calculation failed:", e);
-        return 0.01; // 오류 시 기본값 반환 (무음 판정 방지)
+        return 0.01; 
     }
 }
 
@@ -117,9 +118,8 @@ document.getElementById("toggleSTT").onclick = async () => {
             const blobSize = blob.size;
             chunks = [];
 
-            // ✅ 2. (수정됨) 청크 최소 크기 제한을 10KB로 대폭 낮췄습니다.
-            // 2초 분량의 Opus 오디오는 100KB보다 훨씬 작습니다.
-            if(blobSize < 10 * 1024) { // 100KB -> 10KB
+            // (이전 수정) 청크 최소 크기 제한을 10KB로 유지
+            if(blobSize < 10 * 1024) { 
                 console.log(`청크가 너무 작음 (${blobSize} bytes), 스킵`);
                 restart();
                 return;
@@ -128,7 +128,6 @@ document.getElementById("toggleSTT").onclick = async () => {
             const val = await rms(blob);
             console.log(`RMS: ${val.toFixed(4)}, Size: ${blobSize} bytes`);
             
-            // RMS 체크를 더 관대하게
             if(val < rmsThreshold) { 
                 console.log("무음으로 판정, 스킵");
                 restart(); 
@@ -137,7 +136,7 @@ document.getElementById("toggleSTT").onclick = async () => {
 
             const fd = new FormData();
             fd.append("audio", blob, "chunk.webm");
-            fd.append("session_id", sessionId); // 세션 ID 전달
+            fd.append("session_id", sessionId); 
             
             let data;
             try {
@@ -147,7 +146,6 @@ document.getElementById("toggleSTT").onclick = async () => {
                 data = await resp.json();
                 
                 if (!resp.ok) {
-                    // Render 서버에서 보낸 에러 메시지(e.g., Flask 연결 실패)를 표시
                     throw new Error(data.error || `Whisper API Error ${resp.status}`);
                 }
             } catch (err) {
@@ -157,7 +155,6 @@ document.getElementById("toggleSTT").onclick = async () => {
                 return;
             }
 
-            // merged_sentences를 사용하여 전체 문장 업데이트
             if(data.merged_sentences && data.merged_sentences.length > 0) {
                 const allSentences = data.merged_sentences.map(s => s.text).join(" ");
                 currentSentenceBuffer = allSentences;
@@ -167,7 +164,6 @@ document.getElementById("toggleSTT").onclick = async () => {
                 
                 console.log("누적 문장:", currentSentenceBuffer);
             } else if(data.partial_text && data.partial_text.trim()) {
-                // merged_sentences가 없으면 partial_text 사용
                 const newText = data.partial_text.trim();
                 if(newText) {
                     currentSentenceBuffer += (currentSentenceBuffer ? " " : "") + newText;
@@ -189,7 +185,7 @@ document.getElementById("toggleSTT").onclick = async () => {
                 if(isRecording && mediaRecorder.state === "recording") {
                     mediaRecorder.stop(); 
                 }
-            }, 2000); // 2초로 단축 (실시간 우선)
+            }, 2000); 
         }
 
         mediaRecorder.start();
@@ -197,7 +193,7 @@ document.getElementById("toggleSTT").onclick = async () => {
             if(isRecording && mediaRecorder.state === "recording") {
                 mediaRecorder.stop(); 
             }
-        }, 2000); // 2초로 단축 (실시간 우선)
+        }, 2000); 
 
     } catch (err) {
         console.error("Failed to get audio stream", err);
@@ -209,7 +205,6 @@ document.getElementById("toggleSTT").onclick = async () => {
 
 function stopSTT(){
     if (mediaRecorder && isRecording) {
-        // 마지막 누적 문장을 히스토리에 추가
         if(currentSentenceBuffer.trim()) {
             clientSentences.push(currentSentenceBuffer.trim());
             renderHistory();
@@ -229,7 +224,6 @@ function stopSTT(){
             console.warn("MediaRecorder stop/stream stop error:", e);
         }
         
-        // 새 세션 ID 생성
         sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         currentSentenceBuffer = "";
     }
@@ -264,7 +258,6 @@ document.getElementById("clearHistory").onclick = ()=>{
     currentSentenceBuffer = "";
     document.getElementById("historyList").textContent="여기에 문장이 쌓입니다";
     document.getElementById("realtimeText").innerHTML = "대기 중...";
-    // 세션 ID도 리셋
     sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
