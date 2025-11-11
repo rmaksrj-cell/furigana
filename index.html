@@ -39,12 +39,12 @@ button { padding:8px 12px; border:none; border-radius:6px; cursor:pointer; }
 <div class="box" style="margin-top:20px;">
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
     <h4 style="margin:0;">📝 일본어 문장 입력</h4>
-    <button id="clearInput" style="background:#ff5252; color:#fff; padding:6px 12px;">초기화</button>
   </div>
   <textarea id="input"></textarea>
   <div style="margin-top:10px;">
     <button id="convertBtn" style="background:#ff79a8; color:#fff;">변환하기 (후리가나 + 발음 + 해석)</button>
     <button id="toggleSTT">🎤 STT 시작</button>
+    <button id="clearInput" style="background:#ff5252; color:#fff; padding:6px 12px; margin-left: 8px;">초기화</button>
   </div>
 </div>
 
@@ -55,7 +55,8 @@ button { padding:8px 12px; border:none; border-radius:6px; cursor:pointer; }
 </div>
 
 <script>
-const WHISPER_URL = "http://localhost:5000/whisper_stream";
+// ✅ 1. WHISPER_URL을 로컬 Flask 대신 Render 서버의 프록시 엔드포인트로 변경
+const WHISPER_URL = "https://furigana-0ljx.onrender.com/whisper";
 const FURIGANA_URL = "https://furigana-0ljx.onrender.com/furigana";
 
 let isRecording = false;
@@ -116,7 +117,7 @@ document.getElementById("toggleSTT").onclick = async () => {
             const blobSize = blob.size;
             chunks = [];
 
-            // 너무 작은 청크는 무시 (100KB 미만)
+            // 너무 작은 청크는 무시 (100KB 미만) - 프록시 경유 시 네트워크 오버헤드를 고려하여 유지
             if(blobSize < 100 * 1024) {
                 console.log("청크가 너무 작음, 스킵");
                 restart();
@@ -139,12 +140,13 @@ document.getElementById("toggleSTT").onclick = async () => {
             
             let data;
             try {
-                document.getElementById("statusText").textContent = "🔄 음성 인식 중...";
+                document.getElementById("statusText").textContent = "🔄 음성 인식 중 (Render 서버 호출)...";
                 
                 const resp = await fetch(WHISPER_URL, {method:"POST", body:fd});
                 data = await resp.json();
                 
                 if (!resp.ok) {
+                    // Render 서버에서 보낸 에러 메시지(e.g., Flask 연결 실패)를 표시
                     throw new Error(data.error || `Whisper API Error ${resp.status}`);
                 }
             } catch (err) {
