@@ -369,7 +369,7 @@ let sessionId = generateSessionId();
 const RMS_THRESHOLD = 0.003; // 더 낮은 임계값으로 민감도 증가
 const RECORDING_INTERVAL = 3000; // 3초로 늘림 (더 긴 녹음)
 const MIN_CHUNK_SIZE = 5 * 1024; // 5KB로 낮춤 (짧은 음성도 처리)
-const SILENCE_THRESHOLD = 4; // 4회로 늘림 (더 여유있게)
+const SILENCE_THRESHOLD = 2; // 2회로 줄임 (6초 무음이면 확정)
 
 let silenceCount = 0; // 무음 카운터 추가
 let audioContext = null; // AudioContext 재사용
