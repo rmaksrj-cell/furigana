@@ -369,7 +369,7 @@ let sessionId = generateSessionId();
 const RMS_THRESHOLD = 0.003; // 더 낮은 임계값으로 민감도 증가
 const RECORDING_INTERVAL = 3000; // 3초로 늘림 (더 긴 녹음)
 const MIN_CHUNK_SIZE = 5 * 1024; // 5KB로 낮춤 (짧은 음성도 처리)
-const SILENCE_THRESHOLD = 2; // 2회로 줄임 (6초 무음이면 확정)
+const SILENCE_THRESHOLD = 1; // 1회로 줄임 (3초 무음이면 확정)
 
 let silenceCount = 0; // 무음 카운터 추가
 let audioContext = null; // AudioContext 재사용
@@ -483,10 +483,21 @@ document.getElementById("toggleSTT").onclick = async () => {
                 silenceCount++;
                 
                 // ✅ 연속 무음이 일정 횟수 이상이면 현재 문장 확정
-                if (silenceCount >= SILENCE_THRESHOLD && currentSentenceBuffer) {
+                if (silenceCount >= SILENCE_THRESHOLD && currentSentenceBuffer.trim()) {
                     console.log(`💾 ${SILENCE_THRESHOLD}회 연속 무음 → 문장 확정:`, currentSentenceBuffer);
-                    clientSentences.push(currentSentenceBuffer);
-                    renderHistory();
+                    
+                    // 히스토리에 추가
+                    const trimmedSentence = currentSentenceBuffer.trim();
+                    const lastSentence = clientSentences[clientSentences.length - 1];
+                    
+                    // 중복 체크 후 추가
+                    if (lastSentence !== trimmedSentence) {
+                        clientSentences.push(trimmedSentence);
+                        renderHistory();
+                        console.log("✅ 히스토리에 추가됨:", trimmedSentence);
+                    }
+                    
+                    // 버퍼 초기화
                     currentSentenceBuffer = "";
                     updateRealtimeDisplay("");
                     silenceCount = 0;
