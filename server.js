@@ -9,7 +9,6 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const FLASK_TARGET_URL = process.env.FLASK_URL || 'http://localhost:5000';
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -80,32 +79,35 @@ app.post('/furigana', async (req, res) => {
   }
 });
 
-// ✅ /whisper 프록시 라우트 (Flask로 전달)
+// ✅ OpenAI Whisper API 직접 사용
 app.post('/whisper', upload.single('audio'), async (req, res) => {
-  const target = `${FLASK_TARGET_URL}/whisper_stream`;
-
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No audio file provided' });
     }
 
-    console.log(`[PROXY] 오디오 수신: ${req.file.size} bytes, mimetype: ${req.file.mimetype}`);
-
-    const form = new FormData();
-    form.append('audio', req.file.buffer, {
-      filename: req.file.originalname || 'audio.webm',
-      contentType: req.file.mimetype || 'audio/webm'
-    });
-
-    if (req.body && req.body.session_id) {
-      form.append('session_id', req.body.session_id);
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(500).json({ error: 'OpenAI API key not configured' });
     }
 
-    console.log(`[PROXY] Flask로 전달: ${target}`);
+    console.log(`[WHISPER] 오디오 수신: ${req.file.size} bytes, mimetype: ${req.file.mimetype}`);
 
-    const response = await fetch(target, {
+    // FormData 생성
+    const form = new FormData();
+    form.append('file', req.file.buffer, {
+      filename: 'audio.webm',
+      contentType: req.file.mimetype || 'audio/webm'
+    });
+    form.append('model', 'whisper-1');
+    form.append('language', 'ja'); // 일본어
+    form.append('response_format', 'json');
+
+    // OpenAI Whisper API 호출
+    console.log('[WHISPER] OpenAI Whisper API 호출 중...');
+    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
         ...form.getHeaders()
       },
       body: form
@@ -114,33 +116,28 @@ app.post('/whisper', upload.single('audio'), async (req, res) => {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('[PROXY] Flask 에러:', response.status, data);
+      console.error('[WHISPER] OpenAI API 오류:', response.status, data);
       return res.status(response.status).json({ 
-        error: data.error || `whisper_stream failed with status ${response.status}` 
+        error: data.error?.message || `Whisper API failed with status ${response.status}` 
       });
     }
 
-    console.log(`[PROXY] 성공: partial_text="${data.partial_text?.substring(0, 30)}..."`);
-    return res.json(data);
+    console.log(`[WHISPER] 성공: "${data.text?.substring(0, 50)}..."`);
+
+    // 결과 반환 (기존 Flask 형식과 호환)
+    return res.json({
+      partial_text: data.text || "",
+      merged_sentences: data.text ? [{ text: data.text }] : []
+    });
 
   } catch (err) {
-    console.error("[PROXY] /whisper error:", err.message);
-
-    // ✅ Flask 서버 연결 실패 감지
-    if (err.message.includes('ECONNREFUSED') || 
-        err.message.includes('EHOSTUNREACH') || 
-        err.message.includes('fetch failed')) {
-      return res.status(503).json({
-        error: `Flask 서버 연결 실패: ${FLASK_TARGET_URL}에 연결할 수 없습니다. Python 서버(whisper_local_server.py)가 실행 중인지 확인하세요.`
-      });
-    }
-
-    res.status(500).json({ error: err.message || 'An unknown proxy error occurred.' });
+    console.error("[WHISPER] Error:", err.message);
+    res.status(500).json({ error: err.message || 'Whisper API error occurred' });
   }
 });
 
 app.listen(PORT, () => {
   console.log(`🚀 Express Server running on port ${PORT}`);
-  console.log(`👉 Flask Target: ${FLASK_TARGET_URL}`);
-  console.log(`📡 Whisper 프록시: http://localhost:${PORT}/whisper → ${FLASK_TARGET_URL}/whisper_stream`);
+  console.log(`📡 Whisper: OpenAI Whisper API 직접 사용`);
+  console.log(`🔑 API Key: ${process.env.OPENAI_API_KEY ? '설정됨 ✅' : '미설정 ❌'}`);
 });
