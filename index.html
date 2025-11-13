@@ -2,90 +2,399 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>Furigana STT - A Mode (개선)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Whisper API 일본어 받아쓰기</title>
 <style>
-body { font-family: sans-serif; margin: 20px; background: #fff; }
-.container { display: flex; gap: 20px; }
-.box { background: #fafafa; padding: 14px; border-radius: 8px; box-shadow: 0 0 4px rgba(0,0,0,0.08); }
-#realtimeBox { flex: 1; background:#111; color:#fff; min-height:180px; border-radius:8px; padding:16px; }
-#realtimeText .live-sentence { padding: 8px; background: rgba(255,255,255,0.08); border-left:3px solid #ff79a8; border-radius:6px; margin-bottom:8px; }
-#historyBox { flex: 1; max-height: 350px; overflow-y: auto; }
-.history-sentence { background:#f0f0f0; padding:6px 10px; border-radius:6px; margin-bottom:6px; border-left:3px solid #4caf50; cursor:pointer; }
-.history-sentence:hover { background:#e8f5e9; }
-textarea { width:100%; height:120px; border-radius:6px; padding:10px; border:1px solid #ccc; }
-button { padding:8px 12px; border:none; border-radius:6px; cursor:pointer; }
-#toggleSTT { background:#4caf50; color:#fff; }
-.recording-indicator { display: inline-block; width: 8px; height: 8px; background: #ff5252; border-radius: 50%; margin-left: 8px; animation: pulse 1.5s ease-in-out infinite; }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { 
+    font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container { 
+    max-width: 1400px; 
+    margin: 0 auto; 
+}
+
+h1 {
+    color: white;
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 2em;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+.main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+}
+
+/* 실시간 표시 영역 */
+#realtimeBox {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    color: white;
+    min-height: 200px;
+    position: relative;
+}
+
+#realtimeText {
+    min-height: 120px;
+    font-size: 1.1em;
+    line-height: 1.6;
+}
+
+.live-sentence {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+    padding: 16px;
+    border-radius: 12px;
+    border-left: 4px solid #ff79a8;
+    margin-bottom: 12px;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+#statusText {
+    font-size: 0.9em;
+    opacity: 0.8;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.2);
+}
+
+/* 히스토리 영역 */
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.history-header h3 {
+    color: #333;
+    font-size: 1.2em;
+}
+
+#historyList {
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+#historyList::-webkit-scrollbar {
+    width: 8px;
+}
+
+#historyList::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+#historyList::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.history-sentence {
+    background: #f5f7fa;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border-left: 4px solid #4caf50;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.history-sentence:hover {
+    background: #e8f5e9;
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+}
+
+.empty-state {
+    text-align: center;
+    color: #999;
+    padding: 40px 20px;
+    font-style: italic;
+}
+
+/* 컨트롤 버튼 */
+.controls {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 600;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+#toggleSTT {
+    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    color: white;
+    flex: 1;
+    min-width: 200px;
+}
+
+#toggleSTT.recording {
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+}
+
+.recording-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background: white;
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(0.8); }
+}
+
+.btn-secondary {
+    background: #9e9e9e;
+    color: white;
+}
+
+.btn-danger {
+    background: #f44336;
+    color: white;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #ff79a8 0%, #ff5c8d 100%);
+    color: white;
+}
+
+/* 입력 영역 */
+textarea {
+    width: 100%;
+    min-height: 150px;
+    padding: 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1em;
+    font-family: inherit;
+    resize: vertical;
+    transition: border-color 0.3s;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+/* 결과 영역 */
+#resultsCard {
+    margin-top: 20px;
+}
+
+.result-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.result-section h4 {
+    color: #333;
+    margin-bottom: 12px;
+    font-size: 1.1em;
+}
+
+.result-section pre {
+    background: white;
+    padding: 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.6;
+    border-left: 4px solid #667eea;
+}
+
+/* 로딩 상태 */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    .main-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    h1 {
+        font-size: 1.5em;
+    }
+    
+    .controls {
+        flex-direction: column;
+    }
+    
+    button {
+        width: 100%;
+    }
+}
 </style>
 </head>
 <body>
 
-<h2>🎧 실시간 일본어 받아쓰기 (개선 버전)</h2>
-
 <div class="container">
-  <div id="realtimeBox">
-    <div id="realtimeText">대기 중...</div>
-    <div id="statusText" style="font-size:12px; opacity:0.7;">STT 시작 버튼을 눌러주세요</div>
-  </div>
+    <h1>🎧 일본어 실시간 받아쓰기 (Whisper API)</h1>
 
-  <div class="box" id="historyBox">
-    <h4>📜 확정 문장 내역</h4>
-    <div id="historyList">여기에 문장이 쌓입니다</div>
-    <button id="clearHistory" style="margin-top:8px; background:#999; color:#fff;">내역 초기화</button>
-  </div>
-</div>
+    <div class="main-grid">
+        <!-- 실시간 표시 -->
+        <div class="card" id="realtimeBox">
+            <h3 style="margin-bottom: 16px;">🔴 실시간 인식</h3>
+            <div id="realtimeText">
+                <div class="empty-state">STT 버튼을 눌러 시작하세요</div>
+            </div>
+            <div id="statusText">준비 완료</div>
+        </div>
 
-<div class="box" style="margin-top:20px;">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-    <h4 style="margin:0;">📝 일본어 문장 입력</h4>
-  </div>
-  <textarea id="input"></textarea>
-  <div style="margin-top:10px;">
-    <button id="convertBtn" style="background:#ff79a8; color:#fff;">변환하기 (후리가나 + 발음 + 해석)</button>
-    <button id="toggleSTT">🎤 STT 시작</button>
-    <button id="clearInput" style="background:#ff5252; color:#fff; padding:6px 12px; margin-left: 8px;">초기화</button>
-  </div>
-</div>
+        <!-- 히스토리 -->
+        <div class="card">
+            <div class="history-header">
+                <h3>📜 확정 문장</h3>
+                <button class="btn-secondary" id="clearHistory" style="padding: 8px 16px; font-size: 0.9em;">
+                    🗑️ 초기화
+                </button>
+            </div>
+            <div id="historyList">
+                <div class="empty-state">문장이 여기에 쌓입니다</div>
+            </div>
+        </div>
+    </div>
 
-<div class="box" style="margin-top:20px;">
-  <h3>변환 결과</h3>
-  <pre id="output_main"></pre>
-  <pre id="output_breakdown"></pre>
+    <!-- 입력 및 변환 -->
+    <div class="card">
+        <h3 style="margin-bottom: 16px;">📝 일본어 문장 입력</h3>
+        <textarea id="input" placeholder="일본어 문장을 입력하거나 STT로 받아쓰세요..."></textarea>
+        
+        <div class="controls">
+            <button id="toggleSTT">
+                🎤 STT 시작
+            </button>
+            <button class="btn-primary" id="convertBtn">
+                ✨ 후리가나 변환
+            </button>
+            <button class="btn-danger" id="clearInput">
+                🗑️ 입력 초기화
+            </button>
+        </div>
+    </div>
+
+    <!-- 결과 -->
+    <div class="card" id="resultsCard" style="display: none;">
+        <h3 style="margin-bottom: 20px;">📋 변환 결과</h3>
+        
+        <div class="result-section">
+            <h4>🔤 후리가나 + 한글 발음</h4>
+            <pre id="output_main">변환 버튼을 눌러주세요</pre>
+        </div>
+        
+        <div class="result-section">
+            <h4>📖 문장 분석</h4>
+            <pre id="output_breakdown">변환 버튼을 눌러주세요</pre>
+        </div>
+    </div>
 </div>
 
 <script>
-// ✅ (수정됨) WHISPER_URL을 사용자가 확인해준 새 Render 서버 주소로 변경
 const WHISPER_URL = "https://fur-qar7.onrender.com/whisper";
-// ✅ (수정됨) FURIGANA_URL을 사용자가 확인해준 새 Render 서버 주소로 변경
 const FURIGANA_URL = "https://fur-qar7.onrender.com/furigana";
 
 let isRecording = false;
-let mediaRecorder;
+let mediaRecorder = null;
 let chunks = [];
 let clientSentences = [];
-const rmsThreshold = 0.005; 
+let currentSentenceBuffer = "";
 let recordingTimer = null;
-let sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; 
-let currentSentenceBuffer = ""; 
+let sessionId = generateSessionId();
 
-async function rms(blob){
+const RMS_THRESHOLD = 0.005;
+const RECORDING_INTERVAL = 2000; // 2초
+const MIN_CHUNK_SIZE = 10 * 1024; // 10KB
+
+function generateSessionId() {
+    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// RMS 계산 (음성 크기 측정)
+async function calculateRMS(blob) {
     try {
-        const ab = await blob.arrayBuffer();
-        const ctx = new AudioContext();
-        const audio = await ctx.decodeAudioData(ab);
-        const data = audio.getChannelData(0);
-        let sum=0; 
-        for(let i=0; i<data.length; i++) sum += data[i]*data[i];
-        return Math.sqrt(sum/data.length);
-    } catch(e) {
-        console.warn("RMS calculation failed:", e);
-        return 0.01; 
+        const arrayBuffer = await blob.arrayBuffer();
+        const audioContext = new AudioContext();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        const channelData = audioBuffer.getChannelData(0);
+        
+        let sum = 0;
+        for (let i = 0; i < channelData.length; i++) {
+            sum += channelData[i] * channelData[i];
+        }
+        
+        await audioContext.close();
+        return Math.sqrt(sum / channelData.length);
+    } catch (e) {
+        console.warn("RMS 계산 실패:", e);
+        return 0.01;
     }
 }
 
+// STT 시작/중지 토글
 document.getElementById("toggleSTT").onclick = async () => {
-    if(isRecording){ stopSTT(); return; }
+    if (isRecording) {
+        stopSTT();
+        return;
+    }
 
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -97,200 +406,267 @@ document.getElementById("toggleSTT").onclick = async () => {
                 autoGainControl: true
             }
         });
+
+        mediaRecorder = new MediaRecorder(stream, {
+            mimeType: "audio/webm;codecs=opus"
+        });
         
-        mediaRecorder = new MediaRecorder(stream, {mimeType:"audio/webm;codecs=opus"});
         isRecording = true;
         chunks = [];
         currentSentenceBuffer = "";
-        
-        document.getElementById("toggleSTT").innerHTML = "⏹️ STT 중지<span class='recording-indicator'></span>";
-        document.getElementById("statusText").textContent = "🎙️ 듣는 중... (2초 간격으로 녹음)";
 
-        mediaRecorder.ondataavailable = e => { 
-            if(e.data.size > 0) chunks.push(e.data); 
+        const btn = document.getElementById("toggleSTT");
+        btn.innerHTML = '⏹️ STT 중지 <span class="recording-indicator"></span>';
+        btn.classList.add('recording');
+        
+        updateStatus("🎙️ 듣는 중...", "recording");
+
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) {
+                chunks.push(e.data);
+            }
         };
 
         mediaRecorder.onstop = async () => {
-            if(!isRecording) return;
-            
-            if(chunks.length === 0){ restart(); return; }
-            const blob = new Blob(chunks, {type:"audio/webm"});
+            if (!isRecording) return;
+
+            if (chunks.length === 0) {
+                restartRecording();
+                return;
+            }
+
+            const blob = new Blob(chunks, { type: "audio/webm" });
             const blobSize = blob.size;
             chunks = [];
 
-            // (이전 수정) 청크 최소 크기 제한을 10KB로 유지
-            if(blobSize < 10 * 1024) { 
-                console.log(`청크가 너무 작음 (${blobSize} bytes), 스킵`);
-                restart();
+            // 청크가 너무 작으면 스킵
+            if (blobSize < MIN_CHUNK_SIZE) {
+                console.log(`청크 크기 부족 (${blobSize} bytes), 스킵`);
+                restartRecording();
                 return;
             }
 
-            const val = await rms(blob);
-            console.log(`RMS: ${val.toFixed(4)}, Size: ${blobSize} bytes`);
-            
-            if(val < rmsThreshold) { 
+            // 음성 크기 체크
+            const rmsValue = await calculateRMS(blob);
+            console.log(`RMS: ${rmsValue.toFixed(4)}, Size: ${blobSize} bytes`);
+
+            if (rmsValue < RMS_THRESHOLD) {
                 console.log("무음으로 판정, 스킵");
-                restart(); 
-                return; 
-            }
-
-            const fd = new FormData();
-            fd.append("audio", blob, "chunk.webm");
-            fd.append("session_id", sessionId); 
-            
-            let data;
-            try {
-                document.getElementById("statusText").textContent = "🔄 음성 인식 중 (Render 서버 호출)...";
-                
-                const resp = await fetch(WHISPER_URL, {method:"POST", body:fd});
-                data = await resp.json();
-                
-                if (!resp.ok) {
-                    throw new Error(data.error || `Whisper API Error ${resp.status}`);
-                }
-            } catch (err) {
-                console.error("Whisper Error:", err);
-                document.getElementById("statusText").textContent = `에러: ${err.message}`;
-                restart();
+                restartRecording();
                 return;
             }
 
-            if(data.merged_sentences && data.merged_sentences.length > 0) {
-                const allSentences = data.merged_sentences.map(s => s.text).join(" ");
-                currentSentenceBuffer = allSentences;
-                
-                document.getElementById("realtimeText").innerHTML = 
-                    `<div class="live-sentence">${currentSentenceBuffer}</div>`;
-                
-                console.log("누적 문장:", currentSentenceBuffer);
-            } else if(data.partial_text && data.partial_text.trim()) {
-                const newText = data.partial_text.trim();
-                if(newText) {
-                    currentSentenceBuffer += (currentSentenceBuffer ? " " : "") + newText;
-                    document.getElementById("realtimeText").innerHTML = 
-                        `<div class="live-sentence">${currentSentenceBuffer}</div>`;
-                }
-            }
-
-            document.getElementById("statusText").textContent = "🎙️ 듣는 중...";
-            restart();
+            // Whisper API 호출
+            await processAudioChunk(blob);
+            restartRecording();
         };
 
-        function restart(){
-            if(!isRecording) return;
-            chunks = [];
-            mediaRecorder.start();
-            if(recordingTimer) clearTimeout(recordingTimer);
-            recordingTimer = setTimeout(()=>{ 
-                if(isRecording && mediaRecorder.state === "recording") {
-                    mediaRecorder.stop(); 
-                }
-            }, 2000); 
-        }
-
-        mediaRecorder.start();
-        recordingTimer = setTimeout(()=>{ 
-            if(isRecording && mediaRecorder.state === "recording") {
-                mediaRecorder.stop(); 
-            }
-        }, 2000); 
+        // 첫 녹음 시작
+        startRecordingChunk();
 
     } catch (err) {
-        console.error("Failed to get audio stream", err);
-        document.getElementById("statusText").textContent = "오디오 장치를 찾을 수 없습니다.";
+        console.error("마이크 접근 실패:", err);
+        updateStatus("❌ 마이크를 사용할 수 없습니다", "error");
         isRecording = false;
         document.getElementById("toggleSTT").textContent = "🎤 STT 시작";
+        document.getElementById("toggleSTT").classList.remove('recording');
     }
 };
 
-function stopSTT(){
-    if (mediaRecorder && isRecording) {
-        if(currentSentenceBuffer.trim()) {
-            clientSentences.push(currentSentenceBuffer.trim());
-            renderHistory();
+function startRecordingChunk() {
+    if (!isRecording || !mediaRecorder) return;
+    
+    chunks = [];
+    mediaRecorder.start();
+    
+    if (recordingTimer) clearTimeout(recordingTimer);
+    recordingTimer = setTimeout(() => {
+        if (isRecording && mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
         }
-        
-        isRecording = false;
-        if(recordingTimer) {
-            clearTimeout(recordingTimer);
-            recordingTimer = null;
-        }
-        try {
-            if(mediaRecorder.state === "recording") {
-                mediaRecorder.stop();
-            }
-            mediaRecorder.stream.getTracks().forEach(track => track.stop());
-        } catch (e) {
-            console.warn("MediaRecorder stop/stream stop error:", e);
-        }
-        
-        sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        currentSentenceBuffer = "";
-    }
-    document.getElementById("toggleSTT").textContent = "🎤 STT 시작";
-    document.getElementById("statusText").textContent = "중지됨";
-    document.getElementById("realtimeText").innerHTML = "대기 중...";
+    }, RECORDING_INTERVAL);
 }
 
-function renderHistory(){
-    const box = document.getElementById("historyList");
-    box.innerHTML = "";
-    clientSentences.forEach((t,i) => {
-        const d = document.createElement("div");
-        d.className="history-sentence";
-        d.textContent = (i+1)+". "+t;
-        d.onclick = () => {
+function restartRecording() {
+    if (!isRecording) return;
+    startRecordingChunk();
+}
+
+async function processAudioChunk(blob) {
+    const formData = new FormData();
+    formData.append("audio", blob, "chunk.webm");
+    formData.append("session_id", sessionId);
+
+    try {
+        updateStatus("📡 음성 인식 중...", "processing");
+
+        const response = await fetch(WHISPER_URL, {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || `API 오류 ${response.status}`);
+        }
+
+        // 결과 처리
+        if (data.merged_sentences && data.merged_sentences.length > 0) {
+            const allSentences = data.merged_sentences.map(s => s.text).join(" ");
+            currentSentenceBuffer = allSentences;
+            updateRealtimeDisplay(currentSentenceBuffer);
+            console.log("누적 문장:", currentSentenceBuffer);
+        } else if (data.partial_text && data.partial_text.trim()) {
+            const newText = data.partial_text.trim();
+            if (newText) {
+                currentSentenceBuffer += (currentSentenceBuffer ? " " : "") + newText;
+                updateRealtimeDisplay(currentSentenceBuffer);
+            }
+        }
+
+        updateStatus("🎙️ 듣는 중...", "recording");
+
+    } catch (err) {
+        console.error("Whisper API 오류:", err);
+        updateStatus(`❌ 오류: ${err.message}`, "error");
+    }
+}
+
+function updateRealtimeDisplay(text) {
+    const realtimeText = document.getElementById("realtimeText");
+    if (text) {
+        realtimeText.innerHTML = `<div class="live-sentence">${text}</div>`;
+    } else {
+        realtimeText.innerHTML = '<div class="empty-state">대기 중...</div>';
+    }
+}
+
+function updateStatus(message, type = "normal") {
+    const statusText = document.getElementById("statusText");
+    statusText.textContent = message;
+}
+
+function stopSTT() {
+    if (!mediaRecorder || !isRecording) return;
+
+    // 현재 버퍼를 히스토리에 추가
+    if (currentSentenceBuffer.trim()) {
+        clientSentences.push(currentSentenceBuffer.trim());
+        renderHistory();
+    }
+
+    isRecording = false;
+
+    if (recordingTimer) {
+        clearTimeout(recordingTimer);
+        recordingTimer = null;
+    }
+
+    try {
+        if (mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+        }
+        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    } catch (e) {
+        console.warn("MediaRecorder 정지 오류:", e);
+    }
+
+    mediaRecorder = null;
+    sessionId = generateSessionId();
+    currentSentenceBuffer = "";
+
+    const btn = document.getElementById("toggleSTT");
+    btn.textContent = "🎤 STT 시작";
+    btn.classList.remove('recording');
+    
+    updateStatus("중지됨", "stopped");
+    updateRealtimeDisplay("");
+}
+
+function renderHistory() {
+    const historyList = document.getElementById("historyList");
+    
+    if (clientSentences.length === 0) {
+        historyList.innerHTML = '<div class="empty-state">문장이 여기에 쌓입니다</div>';
+        return;
+    }
+
+    historyList.innerHTML = "";
+    clientSentences.forEach((text, index) => {
+        const div = document.createElement("div");
+        div.className = "history-sentence";
+        div.textContent = `${index + 1}. ${text}`;
+        div.onclick = () => {
             const input = document.getElementById("input");
-            input.value += (input.value ? "\n" : "") + t;
+            input.value += (input.value ? "\n" : "") + text;
             input.scrollTop = input.scrollHeight;
         };
-        box.appendChild(d);
+        historyList.appendChild(div);
     });
-    if (clientSentences.length > 0) {
-        box.scrollTop = box.scrollHeight;
-    } else {
-        box.textContent="여기에 문장이 쌓입니다";
-    }
+
+    historyList.scrollTop = historyList.scrollHeight;
 }
 
-document.getElementById("clearHistory").onclick = ()=>{
-    clientSentences=[];
+// 히스토리 초기화
+document.getElementById("clearHistory").onclick = () => {
+    clientSentences = [];
     currentSentenceBuffer = "";
-    document.getElementById("historyList").textContent="여기에 문장이 쌓입니다";
-    document.getElementById("realtimeText").innerHTML = "대기 중...";
-    sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    sessionId = generateSessionId();
+    renderHistory();
+    updateRealtimeDisplay("");
 };
 
-document.getElementById("clearInput").onclick = ()=>{
+// 입력 초기화
+document.getElementById("clearInput").onclick = () => {
     document.getElementById("input").value = "";
 };
 
-document.getElementById("convertBtn").onclick = async ()=>{
-    const text=document.getElementById("input").value.trim();
-    if(!text) return;
+// 후리가나 변환
+document.getElementById("convertBtn").onclick = async () => {
+    const text = document.getElementById("input").value.trim();
+    
+    if (!text) {
+        alert("변환할 일본어 문장을 입력해주세요.");
+        return;
+    }
 
-    document.getElementById("output_main").textContent="변환 중... (Render 서버 호출)";
-    document.getElementById("output_breakdown").textContent="";
+    const resultsCard = document.getElementById("resultsCard");
+    const outputMain = document.getElementById("output_main");
+    const outputBreakdown = document.getElementById("output_breakdown");
+
+    resultsCard.style.display = "block";
+    outputMain.innerHTML = '<div class="loading"></div> 변환 중...';
+    outputBreakdown.textContent = "";
 
     try {
-        const r=await fetch(FURIGANA_URL,{
-            method:"POST", headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({text})
+        const response = await fetch(FURIGANA_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text })
         });
-        const d=await r.json();
-        
-        if (!r.ok) {
-            throw new Error(d.error || `API Error ${r.status}`);
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || `API 오류 ${response.status}`);
         }
 
-        document.getElementById("output_main").textContent=d.original||"";
-        document.getElementById("output_breakdown").textContent=d.analysis||"";
+        outputMain.textContent = data.original || "변환 결과 없음";
+        outputBreakdown.textContent = data.analysis || "분석 결과 없음";
+
     } catch (err) {
-        console.error("Furigana Error:", err);
-        document.getElementById("output_main").textContent = `에러: ${err.message}`;
-        document.getElementById("output_breakdown").textContent = "";
+        console.error("후리가나 변환 오류:", err);
+        outputMain.textContent = `❌ 오류: ${err.message}`;
+        outputBreakdown.textContent = "";
     }
 };
+
+// 초기화
+console.log("🚀 Whisper API 받아쓰기 준비 완료");
+console.log("Whisper URL:", WHISPER_URL);
+console.log("Furigana URL:", FURIGANA_URL);
 </script>
+
 </body>
 </html>
