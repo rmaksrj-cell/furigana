@@ -369,6 +369,9 @@ let sessionId = generateSessionId();
 const RMS_THRESHOLD = 0.005;
 const RECORDING_INTERVAL = 2000; // 2초
 const MIN_CHUNK_SIZE = 10 * 1024; // 10KB
+const SILENCE_THRESHOLD = 3; // 3회 연속 무음이면 문장 확정
+
+let silenceCount = 0; // 무음 카운터 추가
 
 function generateSessionId() {
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -420,6 +423,7 @@ document.getElementById("toggleSTT").onclick = async () => {
         isRecording = true;
         chunks = [];
         currentSentenceBuffer = "";
+        silenceCount = 0; // 무음 카운터 초기화
 
         const btn = document.getElementById("toggleSTT");
         btn.innerHTML = '⏹️ STT 중지 <span class="recording-indicator"></span>';
@@ -458,9 +462,24 @@ document.getElementById("toggleSTT").onclick = async () => {
 
             if (rmsValue < RMS_THRESHOLD) {
                 console.log("무음으로 판정, 스킵");
+                silenceCount++;
+                
+                // ✅ 연속 무음이 일정 횟수 이상이면 현재 문장 확정
+                if (silenceCount >= SILENCE_THRESHOLD && currentSentenceBuffer) {
+                    console.log(`${SILENCE_THRESHOLD}회 연속 무음 → 문장 확정:`, currentSentenceBuffer);
+                    clientSentences.push(currentSentenceBuffer);
+                    renderHistory();
+                    currentSentenceBuffer = "";
+                    updateRealtimeDisplay("");
+                    silenceCount = 0;
+                }
+                
                 restartRecording();
                 return;
             }
+
+            // 음성이 감지되면 무음 카운터 리셋
+            silenceCount = 0;
 
             // Whisper API 호출
             await processAudioChunk(blob);
@@ -518,17 +537,26 @@ async function processAudioChunk(blob) {
         }
 
         // 결과 처리
+        let newText = "";
+        
         if (data.merged_sentences && data.merged_sentences.length > 0) {
-            const allSentences = data.merged_sentences.map(s => s.text).join(" ");
-            currentSentenceBuffer = allSentences;
-            updateRealtimeDisplay(currentSentenceBuffer);
-            console.log("누적 문장:", currentSentenceBuffer);
+            newText = data.merged_sentences.map(s => s.text).join(" ").trim();
         } else if (data.partial_text && data.partial_text.trim()) {
-            const newText = data.partial_text.trim();
-            if (newText) {
-                currentSentenceBuffer += (currentSentenceBuffer ? " " : "") + newText;
-                updateRealtimeDisplay(currentSentenceBuffer);
+            newText = data.partial_text.trim();
+        }
+
+        if (newText) {
+            // ✅ 이전 문장이 있고, 새로운 문장이 다르면 이전 것을 확정
+            if (currentSentenceBuffer && currentSentenceBuffer !== newText) {
+                console.log("이전 문장 확정:", currentSentenceBuffer);
+                clientSentences.push(currentSentenceBuffer);
+                renderHistory();
             }
+            
+            // 새로운 문장을 현재 버퍼에 저장
+            currentSentenceBuffer = newText;
+            updateRealtimeDisplay(currentSentenceBuffer);
+            console.log("현재 인식 중:", currentSentenceBuffer);
         }
 
         updateStatus("🎙️ 듣는 중...", "recording");
@@ -556,13 +584,18 @@ function updateStatus(message, type = "normal") {
 function stopSTT() {
     if (!mediaRecorder || !isRecording) return;
 
-    // 현재 버퍼를 히스토리에 추가
+    // ✅ 현재 버퍼를 히스토리에 추가 (중복 체크)
     if (currentSentenceBuffer.trim()) {
-        clientSentences.push(currentSentenceBuffer.trim());
-        renderHistory();
+        // 마지막 히스토리와 다른 경우에만 추가
+        const lastSentence = clientSentences[clientSentences.length - 1];
+        if (lastSentence !== currentSentenceBuffer.trim()) {
+            clientSentences.push(currentSentenceBuffer.trim());
+            renderHistory();
+        }
     }
 
     isRecording = false;
+    silenceCount = 0;
 
     if (recordingTimer) {
         clearTimeout(recordingTimer);
