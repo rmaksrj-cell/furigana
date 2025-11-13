@@ -366,22 +366,25 @@ let currentSentenceBuffer = "";
 let recordingTimer = null;
 let sessionId = generateSessionId();
 
-const RMS_THRESHOLD = 0.005;
-const RECORDING_INTERVAL = 2000; // 2초
-const MIN_CHUNK_SIZE = 10 * 1024; // 10KB
-const SILENCE_THRESHOLD = 3; // 3회 연속 무음이면 문장 확정
+const RMS_THRESHOLD = 0.003;
+const RECORDING_INTERVAL = 3000; // 3초
+const MIN_CHUNK_SIZE = 5 * 1024;
 
-let silenceCount = 0; // 무음 카운터 추가
+let audioContext = null;
+let lastRecognizedText = ""; // 마지막으로 인식된 텍스트
+let silenceTimer = null; // 무음 타이머
 
 function generateSessionId() {
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-// RMS 계산 (음성 크기 측정)
+// RMS 계산
 async function calculateRMS(blob) {
     try {
         const arrayBuffer = await blob.arrayBuffer();
-        const audioContext = new AudioContext();
+        if (!audioContext) {
+            audioContext = new AudioContext();
+        }
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
         const channelData = audioBuffer.getChannelData(0);
         
@@ -389,13 +392,29 @@ async function calculateRMS(blob) {
         for (let i = 0; i < channelData.length; i++) {
             sum += channelData[i] * channelData[i];
         }
-        
-        await audioContext.close();
         return Math.sqrt(sum / channelData.length);
     } catch (e) {
         console.warn("RMS 계산 실패:", e);
         return 0.01;
     }
+}
+
+// 무음 타이머 - 3초 후 문장 확정
+function resetSilenceTimer() {
+    if (silenceTimer) {
+        clearTimeout(silenceTimer);
+    }
+    
+    silenceTimer = setTimeout(() => {
+        if (currentSentenceBuffer.trim()) {
+            console.log("⏰ 3초 무음 → 문장 확정:", currentSentenceBuffer);
+            clientSentences.push(currentSentenceBuffer.trim());
+            renderHistory();
+            currentSentenceBuffer = "";
+            lastRecognizedText = "";
+            updateRealtimeDisplay("");
+        }
+    }, 3000);
 }
 
 // STT 시작/중지 토글
@@ -411,7 +430,7 @@ document.getElementById("toggleSTT").onclick = async () => {
                 channelCount: 1,
                 sampleRate: 16000,
                 echoCancellation: true,
-                noiseSuppression: true,
+                noiseSuppression: false, // ✅ 노이즈 억제 끄기 (단어 놓침 방지)
                 autoGainControl: true
             }
         });
@@ -423,7 +442,8 @@ document.getElementById("toggleSTT").onclick = async () => {
         isRecording = true;
         chunks = [];
         currentSentenceBuffer = "";
-        silenceCount = 0; // 무음 카운터 초기화
+        lastRecognizedText = "";
+        if (silenceTimer) clearTimeout(silenceTimer);
 
         const btn = document.getElementById("toggleSTT");
         btn.innerHTML = '⏹️ STT 중지 <span class="recording-indicator"></span>';
@@ -449,39 +469,25 @@ document.getElementById("toggleSTT").onclick = async () => {
             const blobSize = blob.size;
             chunks = [];
 
-            // 청크가 너무 작으면 스킵
-            if (blobSize < MIN_CHUNK_SIZE) {
-                console.log(`청크 크기 부족 (${blobSize} bytes), 스킵`);
+            console.log(`📦 청크 크기: ${blobSize} bytes`);
+
+            if (blobSize < 3 * 1024) {
                 restartRecording();
                 return;
             }
 
-            // 음성 크기 체크
             const rmsValue = await calculateRMS(blob);
-            console.log(`RMS: ${rmsValue.toFixed(4)}, Size: ${blobSize} bytes`);
+            console.log(`🔊 RMS: ${rmsValue.toFixed(5)}`);
 
             if (rmsValue < RMS_THRESHOLD) {
-                console.log("무음으로 판정, 스킵");
-                silenceCount++;
-                
-                // ✅ 연속 무음이 일정 횟수 이상이면 현재 문장 확정
-                if (silenceCount >= SILENCE_THRESHOLD && currentSentenceBuffer) {
-                    console.log(`${SILENCE_THRESHOLD}회 연속 무음 → 문장 확정:`, currentSentenceBuffer);
-                    clientSentences.push(currentSentenceBuffer);
-                    renderHistory();
-                    currentSentenceBuffer = "";
-                    updateRealtimeDisplay("");
-                    silenceCount = 0;
-                }
-                
+                console.log("🔇 무음 감지");
+                // 무음이면 타이머는 그대로 실행되도록
                 restartRecording();
                 return;
             }
 
-            // 음성이 감지되면 무음 카운터 리셋
-            silenceCount = 0;
-
-            // Whisper API 호출
+            // 음성 감지 - API 호출
+            console.log("🎤 음성 감지 - API 호출");
             await processAudioChunk(blob);
             restartRecording();
         };
@@ -536,9 +542,7 @@ async function processAudioChunk(blob) {
             throw new Error(data.error || `API 오류 ${response.status}`);
         }
 
-        // 결과 처리
         let newText = "";
-        
         if (data.merged_sentences && data.merged_sentences.length > 0) {
             newText = data.merged_sentences.map(s => s.text).join(" ").trim();
         } else if (data.partial_text && data.partial_text.trim()) {
@@ -546,17 +550,17 @@ async function processAudioChunk(blob) {
         }
 
         if (newText) {
-            // ✅ 이전 문장이 있고, 새로운 문장이 다르면 이전 것을 확정
-            if (currentSentenceBuffer && currentSentenceBuffer !== newText) {
-                console.log("이전 문장 확정:", currentSentenceBuffer);
-                clientSentences.push(currentSentenceBuffer);
-                renderHistory();
-            }
+            console.log("🎯 인식:", newText);
             
-            // 새로운 문장을 현재 버퍼에 저장
-            currentSentenceBuffer = newText;
-            updateRealtimeDisplay(currentSentenceBuffer);
-            console.log("현재 인식 중:", currentSentenceBuffer);
+            // 텍스트가 변경되었으면 업데이트
+            if (newText !== lastRecognizedText) {
+                currentSentenceBuffer = newText;
+                lastRecognizedText = newText;
+                updateRealtimeDisplay(currentSentenceBuffer);
+                
+                // 음성이 인식되면 무음 타이머 리셋 (3초 카운트 다시 시작)
+                resetSilenceTimer();
+            }
         }
 
         updateStatus("🎙️ 듣는 중...", "recording");
@@ -584,18 +588,22 @@ function updateStatus(message, type = "normal") {
 function stopSTT() {
     if (!mediaRecorder || !isRecording) return;
 
-    // ✅ 현재 버퍼를 히스토리에 추가 (중복 체크)
+    isRecording = false;
+
+    // 타이머 정리
+    if (silenceTimer) {
+        clearTimeout(silenceTimer);
+        silenceTimer = null;
+    }
+
+    // 남은 문장 확정
     if (currentSentenceBuffer.trim()) {
-        // 마지막 히스토리와 다른 경우에만 추가
         const lastSentence = clientSentences[clientSentences.length - 1];
         if (lastSentence !== currentSentenceBuffer.trim()) {
             clientSentences.push(currentSentenceBuffer.trim());
             renderHistory();
         }
     }
-
-    isRecording = false;
-    silenceCount = 0;
 
     if (recordingTimer) {
         clearTimeout(recordingTimer);
@@ -651,7 +659,9 @@ function renderHistory() {
 document.getElementById("clearHistory").onclick = () => {
     clientSentences = [];
     currentSentenceBuffer = "";
+    lastRecognizedText = "";
     sessionId = generateSessionId();
+    if (silenceTimer) clearTimeout(silenceTimer);
     renderHistory();
     updateRealtimeDisplay("");
 };
@@ -709,3 +719,4 @@ console.log("Furigana URL:", FURIGANA_URL);
 
 </body>
 </html>
+
