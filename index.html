@@ -366,28 +366,25 @@ let currentSentenceBuffer = "";
 let recordingTimer = null;
 let sessionId = generateSessionId();
 
-const RMS_THRESHOLD = 0.003; // 더 낮은 임계값으로 민감도 증가
-const RECORDING_INTERVAL = 3000; // 3초로 늘림 (더 긴 녹음)
-const MIN_CHUNK_SIZE = 5 * 1024; // 5KB로 낮춤 (짧은 음성도 처리)
-const SILENCE_THRESHOLD = 1; // 1회로 줄임 (3초 무음이면 확정)
+const RMS_THRESHOLD = 0.003;
+const RECORDING_INTERVAL = 3000; // 3초
+const MIN_CHUNK_SIZE = 5 * 1024;
 
-let silenceCount = 0; // 무음 카운터 추가
-let audioContext = null; // AudioContext 재사용
+let audioContext = null;
+let lastRecognizedText = ""; // 마지막으로 인식된 텍스트
+let silenceTimer = null; // 무음 타이머
 
 function generateSessionId() {
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-// RMS 계산 (음성 크기 측정) - 개선된 버전
+// RMS 계산
 async function calculateRMS(blob) {
     try {
         const arrayBuffer = await blob.arrayBuffer();
-        
-        // AudioContext 재사용
         if (!audioContext) {
             audioContext = new AudioContext();
         }
-        
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
         const channelData = audioBuffer.getChannelData(0);
         
@@ -395,21 +392,29 @@ async function calculateRMS(blob) {
         for (let i = 0; i < channelData.length; i++) {
             sum += channelData[i] * channelData[i];
         }
-        
-        const rms = Math.sqrt(sum / channelData.length);
-        
-        // 피크 값도 체크 (순간적으로 큰 소리가 있었는지)
-        const peak = Math.max(...channelData.map(Math.abs));
-        
-        console.log(`RMS: ${rms.toFixed(5)}, Peak: ${peak.toFixed(3)}`);
-        
-        // RMS가 낮아도 피크가 있으면 음성으로 판단
-        return peak > 0.05 ? Math.max(rms, 0.01) : rms;
-        
+        return Math.sqrt(sum / channelData.length);
     } catch (e) {
         console.warn("RMS 계산 실패:", e);
         return 0.01;
     }
+}
+
+// 무음 타이머 - 3초 후 문장 확정
+function resetSilenceTimer() {
+    if (silenceTimer) {
+        clearTimeout(silenceTimer);
+    }
+    
+    silenceTimer = setTimeout(() => {
+        if (currentSentenceBuffer.trim()) {
+            console.log("⏰ 3초 무음 → 문장 확정:", currentSentenceBuffer);
+            clientSentences.push(currentSentenceBuffer.trim());
+            renderHistory();
+            currentSentenceBuffer = "";
+            lastRecognizedText = "";
+            updateRealtimeDisplay("");
+        }
+    }, 3000);
 }
 
 // STT 시작/중지 토글
@@ -437,7 +442,8 @@ document.getElementById("toggleSTT").onclick = async () => {
         isRecording = true;
         chunks = [];
         currentSentenceBuffer = "";
-        silenceCount = 0; // 무음 카운터 초기화
+        lastRecognizedText = "";
+        if (silenceTimer) clearTimeout(silenceTimer);
 
         const btn = document.getElementById("toggleSTT");
         btn.innerHTML = '⏹️ STT 중지 <span class="recording-indicator"></span>';
@@ -465,53 +471,23 @@ document.getElementById("toggleSTT").onclick = async () => {
 
             console.log(`📦 청크 크기: ${blobSize} bytes`);
 
-            // ✅ 최소 크기 체크를 더 관대하게
-            if (blobSize < MIN_CHUNK_SIZE) {
-                console.log(`⚠️ 청크 크기 부족 (${blobSize} bytes), 하지만 처리 시도`);
-                // 너무 작은 경우만 스킵 (3KB 미만)
-                if (blobSize < 3 * 1024) {
-                    restartRecording();
-                    return;
-                }
-            }
-
-            // 음성 크기 체크
-            const rmsValue = await calculateRMS(blob);
-
-            if (rmsValue < RMS_THRESHOLD) {
-                console.log("🔇 무음으로 판정");
-                silenceCount++;
-                
-                // ✅ 연속 무음이 일정 횟수 이상이면 현재 문장 확정
-                if (silenceCount >= SILENCE_THRESHOLD && currentSentenceBuffer.trim()) {
-                    console.log(`💾 ${SILENCE_THRESHOLD}회 연속 무음 → 문장 확정:`, currentSentenceBuffer);
-                    
-                    // 히스토리에 추가
-                    const trimmedSentence = currentSentenceBuffer.trim();
-                    const lastSentence = clientSentences[clientSentences.length - 1];
-                    
-                    // 중복 체크 후 추가
-                    if (lastSentence !== trimmedSentence) {
-                        clientSentences.push(trimmedSentence);
-                        renderHistory();
-                        console.log("✅ 히스토리에 추가됨:", trimmedSentence);
-                    }
-                    
-                    // 버퍼 초기화
-                    currentSentenceBuffer = "";
-                    updateRealtimeDisplay("");
-                    silenceCount = 0;
-                }
-                
+            if (blobSize < 3 * 1024) {
                 restartRecording();
                 return;
             }
 
-            // 음성이 감지되면 무음 카운터 리셋
-            console.log("🔊 음성 감지됨!");
-            silenceCount = 0;
+            const rmsValue = await calculateRMS(blob);
+            console.log(`🔊 RMS: ${rmsValue.toFixed(5)}`);
 
-            // Whisper API 호출
+            if (rmsValue < RMS_THRESHOLD) {
+                console.log("🔇 무음 감지");
+                // 무음이면 타이머는 그대로 실행되도록
+                restartRecording();
+                return;
+            }
+
+            // 음성 감지 - API 호출
+            console.log("🎤 음성 감지 - API 호출");
             await processAudioChunk(blob);
             restartRecording();
         };
@@ -566,9 +542,7 @@ async function processAudioChunk(blob) {
             throw new Error(data.error || `API 오류 ${response.status}`);
         }
 
-        // 결과 처리
         let newText = "";
-        
         if (data.merged_sentences && data.merged_sentences.length > 0) {
             newText = data.merged_sentences.map(s => s.text).join(" ").trim();
         } else if (data.partial_text && data.partial_text.trim()) {
@@ -576,27 +550,17 @@ async function processAudioChunk(blob) {
         }
 
         if (newText) {
-            console.log("🎯 인식된 텍스트:", newText);
+            console.log("🎯 인식:", newText);
             
-            // ✅ 누적 모드: 기존 텍스트에 새로운 텍스트 추가
-            if (currentSentenceBuffer) {
-                // 새 텍스트가 기존 텍스트와 겹치지 않으면 추가
-                if (!currentSentenceBuffer.includes(newText) && !newText.includes(currentSentenceBuffer)) {
-                    currentSentenceBuffer += " " + newText;
-                    console.log("➕ 텍스트 추가:", currentSentenceBuffer);
-                } else {
-                    // 더 긴 텍스트로 교체
-                    if (newText.length > currentSentenceBuffer.length) {
-                        currentSentenceBuffer = newText;
-                        console.log("🔄 텍스트 갱신 (더 긴 버전):", currentSentenceBuffer);
-                    }
-                }
-            } else {
+            // 텍스트가 변경되었으면 업데이트
+            if (newText !== lastRecognizedText) {
                 currentSentenceBuffer = newText;
-                console.log("✨ 새 문장 시작:", currentSentenceBuffer);
+                lastRecognizedText = newText;
+                updateRealtimeDisplay(currentSentenceBuffer);
+                
+                // 음성이 인식되면 무음 타이머 리셋 (3초 카운트 다시 시작)
+                resetSilenceTimer();
             }
-            
-            updateRealtimeDisplay(currentSentenceBuffer);
         }
 
         updateStatus("🎙️ 듣는 중...", "recording");
@@ -624,18 +588,22 @@ function updateStatus(message, type = "normal") {
 function stopSTT() {
     if (!mediaRecorder || !isRecording) return;
 
-    // ✅ 현재 버퍼를 히스토리에 추가 (중복 체크)
+    isRecording = false;
+
+    // 타이머 정리
+    if (silenceTimer) {
+        clearTimeout(silenceTimer);
+        silenceTimer = null;
+    }
+
+    // 남은 문장 확정
     if (currentSentenceBuffer.trim()) {
-        // 마지막 히스토리와 다른 경우에만 추가
         const lastSentence = clientSentences[clientSentences.length - 1];
         if (lastSentence !== currentSentenceBuffer.trim()) {
             clientSentences.push(currentSentenceBuffer.trim());
             renderHistory();
         }
     }
-
-    isRecording = false;
-    silenceCount = 0;
 
     if (recordingTimer) {
         clearTimeout(recordingTimer);
@@ -691,7 +659,9 @@ function renderHistory() {
 document.getElementById("clearHistory").onclick = () => {
     clientSentences = [];
     currentSentenceBuffer = "";
+    lastRecognizedText = "";
     sessionId = generateSessionId();
+    if (silenceTimer) clearTimeout(silenceTimer);
     renderHistory();
     updateRealtimeDisplay("");
 };
