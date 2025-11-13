@@ -349,8 +349,14 @@ textarea:focus {
 </div>
 
 <script>
+// ✅ Render 서버 URL (실제 배포된 주소로 변경하세요)
 const WHISPER_URL = "https://fur-qar7.onrender.com/whisper";
 const FURIGANA_URL = "https://fur-qar7.onrender.com/furigana";
+
+// 🔍 연결 테스트
+console.log("🌐 서버 연결 정보:");
+console.log("  Whisper API:", WHISPER_URL);
+console.log("  Furigana API:", FURIGANA_URL);
 
 let isRecording = false;
 let mediaRecorder = null;
