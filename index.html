@@ -1,722 +1,399 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Whisper API 일본어 받아쓰기</title>
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { 
-    font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; 
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    padding: 20px;
-}
+import React, { useState, useEffect } from 'react';
+import { Play, Pause, Download, Volume2, Settings } from 'lucide-react';
 
-.container { 
-    max-width: 1400px; 
-    margin: 0 auto; 
-}
+export default function JapaneseLearningVideoMaker() {
+  const [sentence, setSentence] = useState('');
+  const [words, setWords] = useState([]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(-1);
+  const [showMeaning, setShowMeaning] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [renderApiUrl, setRenderApiUrl] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
 
-h1 {
-    color: white;
-    text-align: center;
-    margin-bottom: 30px;
-    font-size: 2em;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-}
+  // 예시 문장
+  const loadExample = () => {
+    setSentence('恋愛相談ね？');
+    setWords([
+      { japanese: '恋愛', reading: 'れんあい', korean: '연애' },
+      { japanese: '相談', reading: 'そうだん', korean: '상담' },
+      { japanese: 'ね', reading: 'ね', korean: '구나' },
+    ]);
+  };
 
-.main-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
-}
-
-.card {
-    background: white;
-    border-radius: 16px;
-    padding: 24px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-}
-
-/* 실시간 표시 영역 */
-#realtimeBox {
-    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-    color: white;
-    min-height: 200px;
-    position: relative;
-}
-
-#realtimeText {
-    min-height: 120px;
-    font-size: 1.1em;
-    line-height: 1.6;
-}
-
-.live-sentence {
-    background: rgba(255,255,255,0.1);
-    backdrop-filter: blur(10px);
-    padding: 16px;
-    border-radius: 12px;
-    border-left: 4px solid #ff79a8;
-    margin-bottom: 12px;
-    animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-#statusText {
-    font-size: 0.9em;
-    opacity: 0.8;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid rgba(255,255,255,0.2);
-}
-
-/* 히스토리 영역 */
-.history-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-
-.history-header h3 {
-    color: #333;
-    font-size: 1.2em;
-}
-
-#historyList {
-    max-height: 250px;
-    overflow-y: auto;
-    padding-right: 8px;
-}
-
-#historyList::-webkit-scrollbar {
-    width: 8px;
-}
-
-#historyList::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-#historyList::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 4px;
-}
-
-.history-sentence {
-    background: #f5f7fa;
-    padding: 12px 16px;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    border-left: 4px solid #4caf50;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.history-sentence:hover {
-    background: #e8f5e9;
-    transform: translateX(4px);
-    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
-}
-
-.empty-state {
-    text-align: center;
-    color: #999;
-    padding: 40px 20px;
-    font-style: italic;
-}
-
-/* 컨트롤 버튼 */
-.controls {
-    display: flex;
-    gap: 12px;
-    margin-top: 20px;
-    flex-wrap: wrap;
-}
-
-button {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 1em;
-    font-weight: 600;
-    transition: all 0.3s;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-
-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-button:active {
-    transform: translateY(0);
-}
-
-#toggleSTT {
-    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
-    color: white;
-    flex: 1;
-    min-width: 200px;
-}
-
-#toggleSTT.recording {
-    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
-}
-
-.recording-indicator {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    background: white;
-    border-radius: 50%;
-    animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.3; transform: scale(0.8); }
-}
-
-.btn-secondary {
-    background: #9e9e9e;
-    color: white;
-}
-
-.btn-danger {
-    background: #f44336;
-    color: white;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #ff79a8 0%, #ff5c8d 100%);
-    color: white;
-}
-
-/* 입력 영역 */
-textarea {
-    width: 100%;
-    min-height: 150px;
-    padding: 16px;
-    border: 2px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 1em;
-    font-family: inherit;
-    resize: vertical;
-    transition: border-color 0.3s;
-}
-
-textarea:focus {
-    outline: none;
-    border-color: #667eea;
-}
-
-/* 결과 영역 */
-#resultsCard {
-    margin-top: 20px;
-}
-
-.result-section {
-    background: #f8f9fa;
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 16px;
-}
-
-.result-section h4 {
-    color: #333;
-    margin-bottom: 12px;
-    font-size: 1.1em;
-}
-
-.result-section pre {
-    background: white;
-    padding: 16px;
-    border-radius: 6px;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    line-height: 1.6;
-    border-left: 4px solid #667eea;
-}
-
-/* 로딩 상태 */
-.loading {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(255,255,255,0.3);
-    border-radius: 50%;
-    border-top-color: white;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* 반응형 */
-@media (max-width: 768px) {
-    .main-grid {
-        grid-template-columns: 1fr;
+  // GPT API로 문장 분석 (Render 서버 사용)
+  const analyzeSentence = async () => {
+    if (!sentence.trim()) {
+      alert('일본어 문장을 입력해주세요!');
+      return;
     }
-    
-    h1 {
-        font-size: 1.5em;
+
+    if (!renderApiUrl.trim()) {
+      alert('설정에서 Render API URL을 입력해주세요!');
+      setShowSettings(true);
+      return;
     }
-    
-    .controls {
-        flex-direction: column;
-    }
-    
-    button {
-        width: 100%;
-    }
-}
-</style>
-</head>
-<body>
 
-<div class="container">
-    <h1>🎧 일본어 실시간 받아쓰기 (Whisper API)</h1>
-
-    <div class="main-grid">
-        <!-- 실시간 표시 -->
-        <div class="card" id="realtimeBox">
-            <h3 style="margin-bottom: 16px;">🔴 실시간 인식</h3>
-            <div id="realtimeText">
-                <div class="empty-state">STT 버튼을 눌러 시작하세요</div>
-            </div>
-            <div id="statusText">준비 완료</div>
-        </div>
-
-        <!-- 히스토리 -->
-        <div class="card">
-            <div class="history-header">
-                <h3>📜 확정 문장</h3>
-                <button class="btn-secondary" id="clearHistory" style="padding: 8px 16px; font-size: 0.9em;">
-                    🗑️ 초기화
-                </button>
-            </div>
-            <div id="historyList">
-                <div class="empty-state">문장이 여기에 쌓입니다</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 입력 및 변환 -->
-    <div class="card">
-        <h3 style="margin-bottom: 16px;">📝 일본어 문장 입력</h3>
-        <textarea id="input" placeholder="일본어 문장을 입력하거나 STT로 받아쓰세요..."></textarea>
-        
-        <div class="controls">
-            <button id="toggleSTT">
-                🎤 STT 시작
-            </button>
-            <button class="btn-primary" id="convertBtn">
-                ✨ 후리가나 변환
-            </button>
-            <button class="btn-danger" id="clearInput">
-                🗑️ 입력 초기화
-            </button>
-        </div>
-    </div>
-
-    <!-- 결과 -->
-    <div class="card" id="resultsCard" style="display: none;">
-        <h3 style="margin-bottom: 20px;">📋 변환 결과</h3>
-        
-        <div class="result-section">
-            <h4>🔤 후리가나 + 한글 발음</h4>
-            <pre id="output_main">변환 버튼을 눌러주세요</pre>
-        </div>
-        
-        <div class="result-section">
-            <h4>📖 문장 분석</h4>
-            <pre id="output_breakdown">변환 버튼을 눌러주세요</pre>
-        </div>
-    </div>
-</div>
-
-<script>
-// ✅ Render 서버 URL (실제 배포된 주소로 변경하세요)
-const WHISPER_URL = "https://fur-qar7.onrender.com/whisper";
-const FURIGANA_URL = "https://fur-qar7.onrender.com/furigana";
-
-// 🔍 연결 테스트
-console.log("🌐 서버 연결 정보:");
-console.log("  Whisper API:", WHISPER_URL);
-console.log("  Furigana API:", FURIGANA_URL);
-
-let isRecording = false;
-let mediaRecorder = null;
-let chunks = [];
-let clientSentences = [];
-let currentSentenceBuffer = "";
-let recordingTimer = null;
-let sessionId = generateSessionId();
-
-const RMS_THRESHOLD = 0.003;
-const RECORDING_INTERVAL = 3000; // 3초
-const MIN_CHUNK_SIZE = 5 * 1024;
-
-let audioContext = null;
-let lastRecognizedText = ""; // 마지막으로 인식된 텍스트
-let silenceTimer = null; // 무음 타이머
-
-function generateSessionId() {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-}
-
-// RMS 계산
-async function calculateRMS(blob) {
-    try {
-        const arrayBuffer = await blob.arrayBuffer();
-        if (!audioContext) {
-            audioContext = new AudioContext();
-        }
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-        const channelData = audioBuffer.getChannelData(0);
-        
-        let sum = 0;
-        for (let i = 0; i < channelData.length; i++) {
-            sum += channelData[i] * channelData[i];
-        }
-        return Math.sqrt(sum / channelData.length);
-    } catch (e) {
-        console.warn("RMS 계산 실패:", e);
-        return 0.01;
-    }
-}
-
-// 무음 타이머 - 3초 후 문장 확정
-function resetSilenceTimer() {
-    if (silenceTimer) {
-        clearTimeout(silenceTimer);
-    }
-    
-    silenceTimer = setTimeout(() => {
-        if (currentSentenceBuffer.trim()) {
-            console.log("⏰ 3초 무음 → 문장 확정:", currentSentenceBuffer);
-            clientSentences.push(currentSentenceBuffer.trim());
-            renderHistory();
-            currentSentenceBuffer = "";
-            lastRecognizedText = "";
-            updateRealtimeDisplay("");
-        }
-    }, 3000);
-}
-
-// STT 시작/중지 토글
-document.getElementById("toggleSTT").onclick = async () => {
-    if (isRecording) {
-        stopSTT();
-        return;
-    }
+    setIsAnalyzing(true);
 
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-                channelCount: 1,
-                sampleRate: 16000,
-                echoCancellation: true,
-                noiseSuppression: false, // ✅ 노이즈 억제 끄기 (단어 놓침 방지)
-                autoGainControl: true
-            }
-        });
+      const response = await fetch(renderApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: `다음 일본어 문장을 단어별로 분석해서 JSON 형식으로 반환해줘.
 
-        mediaRecorder = new MediaRecorder(stream, {
-            mimeType: "audio/webm;codecs=opus"
-        });
-        
-        isRecording = true;
-        chunks = [];
-        currentSentenceBuffer = "";
-        lastRecognizedText = "";
-        if (silenceTimer) clearTimeout(silenceTimer);
+문장: ${sentence}
 
-        const btn = document.getElementById("toggleSTT");
-        btn.innerHTML = '⏹️ STT 중지 <span class="recording-indicator"></span>';
-        btn.classList.add('recording');
-        
-        updateStatus("🎙️ 듣는 중...", "recording");
-
-        mediaRecorder.ondataavailable = (e) => {
-            if (e.data.size > 0) {
-                chunks.push(e.data);
-            }
-        };
-
-        mediaRecorder.onstop = async () => {
-            if (!isRecording) return;
-
-            if (chunks.length === 0) {
-                restartRecording();
-                return;
-            }
-
-            const blob = new Blob(chunks, { type: "audio/webm" });
-            const blobSize = blob.size;
-            chunks = [];
-
-            console.log(`📦 청크 크기: ${blobSize} bytes`);
-
-            if (blobSize < 3 * 1024) {
-                restartRecording();
-                return;
-            }
-
-            const rmsValue = await calculateRMS(blob);
-            console.log(`🔊 RMS: ${rmsValue.toFixed(5)}`);
-
-            if (rmsValue < RMS_THRESHOLD) {
-                console.log("🔇 무음 감지");
-                // 무음이면 타이머는 그대로 실행되도록
-                restartRecording();
-                return;
-            }
-
-            // 음성 감지 - API 호출
-            console.log("🎤 음성 감지 - API 호출");
-            await processAudioChunk(blob);
-            restartRecording();
-        };
-
-        // 첫 녹음 시작
-        startRecordingChunk();
-
-    } catch (err) {
-        console.error("마이크 접근 실패:", err);
-        updateStatus("❌ 마이크를 사용할 수 없습니다", "error");
-        isRecording = false;
-        document.getElementById("toggleSTT").textContent = "🎤 STT 시작";
-        document.getElementById("toggleSTT").classList.remove('recording');
-    }
-};
-
-function startRecordingChunk() {
-    if (!isRecording || !mediaRecorder) return;
-    
-    chunks = [];
-    mediaRecorder.start();
-    
-    if (recordingTimer) clearTimeout(recordingTimer);
-    recordingTimer = setTimeout(() => {
-        if (isRecording && mediaRecorder.state === "recording") {
-            mediaRecorder.stop();
-        }
-    }, RECORDING_INTERVAL);
+반환 형식:
+{
+  "words": [
+    {"japanese": "한자포함", "reading": "히라가나만", "korean": "한국어뜻"},
+    ...
+  ]
 }
 
-function restartRecording() {
-    if (!isRecording) return;
-    startRecordingChunk();
-}
+- 조사(は, が, を 등)도 별도 단어로 분리
+- reading은 반드시 히라가나만 사용
+- JSON만 반환, 다른 설명 없이`
+        })
+      });
 
-async function processAudioChunk(blob) {
-    const formData = new FormData();
-    formData.append("audio", blob, "chunk.webm");
-    formData.append("session_id", sessionId);
+      if (!response.ok) {
+        throw new Error(`서버 오류: ${response.status}`);
+      }
 
-    try {
-        updateStatus("📡 음성 인식 중...", "processing");
+      const data = await response.json();
+      const content = data.response || data.message || JSON.stringify(data);
+      
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      
+      if (!jsonMatch) {
+        throw new Error('JSON 파싱 실패');
+      }
 
-        const response = await fetch(WHISPER_URL, {
-            method: "POST",
-            body: formData
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || `API 오류 ${response.status}`);
-        }
-
-        let newText = "";
-        if (data.merged_sentences && data.merged_sentences.length > 0) {
-            newText = data.merged_sentences.map(s => s.text).join(" ").trim();
-        } else if (data.partial_text && data.partial_text.trim()) {
-            newText = data.partial_text.trim();
-        }
-
-        if (newText) {
-            console.log("🎯 인식:", newText);
-            
-            // 텍스트가 변경되었으면 업데이트
-            if (newText !== lastRecognizedText) {
-                currentSentenceBuffer = newText;
-                lastRecognizedText = newText;
-                updateRealtimeDisplay(currentSentenceBuffer);
-                
-                // 음성이 인식되면 무음 타이머 리셋 (3초 카운트 다시 시작)
-                resetSilenceTimer();
-            }
-        }
-
-        updateStatus("🎙️ 듣는 중...", "recording");
-
-    } catch (err) {
-        console.error("Whisper API 오류:", err);
-        updateStatus(`❌ 오류: ${err.message}`, "error");
+      const result = JSON.parse(jsonMatch[0]);
+      setWords(result.words);
+      
+    } catch (error) {
+      console.error('분석 오류:', error);
+      alert(`분석 실패: ${error.message}\n\nRender API URL을 확인하거나 예시를 사용해보세요.`);
+    } finally {
+      setIsAnalyzing(false);
     }
-}
+  };
 
-function updateRealtimeDisplay(text) {
-    const realtimeText = document.getElementById("realtimeText");
-    if (text) {
-        realtimeText.innerHTML = `<div class="live-sentence">${text}</div>`;
-    } else {
-        realtimeText.innerHTML = '<div class="empty-state">대기 중...</div>';
-    }
-}
+  // TTS 음성 재생 (브라우저 내장만 사용)
+  const speak = async (text, lang = 'ja-JP') => {
+    return new Promise((resolve) => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = lang;
+      utterance.rate = 0.9;
+      utterance.onend = resolve;
+      speechSynthesis.speak(utterance);
+    });
+  };
 
-function updateStatus(message, type = "normal") {
-    const statusText = document.getElementById("statusText");
-    statusText.textContent = message;
-}
+  // 애니메이션 재생
+  const playAnimation = async () => {
+    setIsPlaying(true);
+    setCurrentIndex(-1);
+    setShowMeaning(false);
 
-function stopSTT() {
-    if (!mediaRecorder || !isRecording) return;
-
-    isRecording = false;
-
-    // 타이머 정리
-    if (silenceTimer) {
-        clearTimeout(silenceTimer);
-        silenceTimer = null;
+    // 각 단어별로 재생
+    for (let i = 0; i < words.length; i++) {
+      if (!isPlaying) break;
+      
+      // 읽기
+      setCurrentIndex(i);
+      setShowMeaning(false);
+      await speak(words[i].reading, 'ja-JP');
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // 의미
+      setShowMeaning(true);
+      await speak(words[i].korean, 'ko-KR');
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    // 남은 문장 확정
-    if (currentSentenceBuffer.trim()) {
-        const lastSentence = clientSentences[clientSentences.length - 1];
-        if (lastSentence !== currentSentenceBuffer.trim()) {
-            clientSentences.push(currentSentenceBuffer.trim());
-            renderHistory();
-        }
-    }
+    // 전체 문장 읽기
+    setCurrentIndex(-2);
+    setShowMeaning(false);
+    const fullReading = words.map(w => w.reading).join('');
+    await speak(fullReading, 'ja-JP');
+    await new Promise(resolve => setTimeout(resolve, 300));
 
-    if (recordingTimer) {
-        clearTimeout(recordingTimer);
-        recordingTimer = null;
-    }
+    // 전체 해석
+    setShowMeaning(true);
+    const fullMeaning = words.map(w => w.korean).join(' ');
+    await speak(fullMeaning, 'ko-KR');
+    await new Promise(resolve => setTimeout(resolve, 500));
 
-    try {
-        if (mediaRecorder.state === "recording") {
-            mediaRecorder.stop();
-        }
-        mediaRecorder.stream.getTracks().forEach(track => track.stop());
-    } catch (e) {
-        console.warn("MediaRecorder 정지 오류:", e);
-    }
+    setIsPlaying(false);
+    setCurrentIndex(-1);
+    setShowMeaning(false);
+  };
 
-    mediaRecorder = null;
-    sessionId = generateSessionId();
-    currentSentenceBuffer = "";
+  const stopAnimation = () => {
+    setIsPlaying(false);
+    speechSynthesis.cancel();
+    setCurrentIndex(-1);
+    setShowMeaning(false);
+  };
 
-    const btn = document.getElementById("toggleSTT");
-    btn.textContent = "🎤 STT 시작";
-    btn.classList.remove('recording');
-    
-    updateStatus("중지됨", "stopped");
-    updateRealtimeDisplay("");
-}
+  const downloadSRT = () => {
+    let srtContent = '';
+    let counter = 1;
+    let time = 0;
 
-function renderHistory() {
-    const historyList = document.getElementById("historyList");
-    
-    if (clientSentences.length === 0) {
-        historyList.innerHTML = '<div class="empty-state">문장이 여기에 쌓입니다</div>';
-        return;
-    }
+    words.forEach((word) => {
+      // 읽기
+      const startTime = formatSRTTime(time);
+      time += 1.5;
+      const endTime = formatSRTTime(time);
+      srtContent += `${counter}\n${startTime} --> ${endTime}\n${word.reading}\n\n`;
+      counter++;
 
-    historyList.innerHTML = "";
-    clientSentences.forEach((text, index) => {
-        const div = document.createElement("div");
-        div.className = "history-sentence";
-        div.textContent = `${index + 1}. ${text}`;
-        div.onclick = () => {
-            const input = document.getElementById("input");
-            input.value += (input.value ? "\n" : "") + text;
-            input.scrollTop = input.scrollHeight;
-        };
-        historyList.appendChild(div);
+      // 의미
+      const startTime2 = formatSRTTime(time);
+      time += 1.5;
+      const endTime2 = formatSRTTime(time);
+      srtContent += `${counter}\n${startTime2} --> ${endTime2}\n${word.korean}\n\n`;
+      counter++;
     });
 
-    historyList.scrollTop = historyList.scrollHeight;
-}
+    // 전체 읽기
+    const fullReading = words.map(w => w.reading).join('');
+    const startTime3 = formatSRTTime(time);
+    time += 2;
+    const endTime3 = formatSRTTime(time);
+    srtContent += `${counter}\n${startTime3} --> ${endTime3}\n${fullReading}\n\n`;
+    counter++;
 
-// 히스토리 초기화
-document.getElementById("clearHistory").onclick = () => {
-    clientSentences = [];
-    currentSentenceBuffer = "";
-    lastRecognizedText = "";
-    sessionId = generateSessionId();
-    if (silenceTimer) clearTimeout(silenceTimer);
-    renderHistory();
-    updateRealtimeDisplay("");
-};
+    // 전체 의미
+    const fullMeaning = words.map(w => w.korean).join(' ');
+    const startTime4 = formatSRTTime(time);
+    time += 2;
+    const endTime4 = formatSRTTime(time);
+    srtContent += `${counter}\n${startTime4} --> ${endTime4}\n${fullMeaning}\n\n`;
 
-// 입력 초기화
-document.getElementById("clearInput").onclick = () => {
-    document.getElementById("input").value = "";
-};
+    const blob = new Blob([srtContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'japanese-learning.srt';
+    a.click();
+  };
 
-// 후리가나 변환
-document.getElementById("convertBtn").onclick = async () => {
-    const text = document.getElementById("input").value.trim();
-    
-    if (!text) {
-        alert("변환할 일본어 문장을 입력해주세요.");
-        return;
-    }
+  const formatSRTTime = (seconds) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    const ms = Math.floor((seconds % 1) * 1000);
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')},${String(ms).padStart(3, '0')}`;
+  };
 
-    const resultsCard = document.getElementById("resultsCard");
-    const outputMain = document.getElementById("output_main");
-    const outputBreakdown = document.getElementById("output_breakdown");
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-800">
+            일본어 학습 영상 생성기 🎌
+          </h1>
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center gap-2"
+          >
+            <Settings size={20} />
+            설정
+          </button>
+        </div>
 
-    resultsCard.style.display = "block";
-    outputMain.innerHTML = '<div class="loading"></div> 변환 중...';
-    outputBreakdown.textContent = "";
+        {/* 설정 패널 */}
+        {showSettings && (
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-700">API 설정</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Render API URL
+                </label>
+                <input
+                  type="text"
+                  value={renderApiUrl}
+                  onChange={(e) => setRenderApiUrl(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="https://your-app.onrender.com/api/chat"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Render에 배포된 GPT API 서버의 엔드포인트 URL을 입력하세요
+                </p>
+              </div>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  💡 <strong>TTS 음성:</strong> 브라우저 내장 음성 합성을 사용합니다 (무료)
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
-    try {
-        const response = await fetch(FURIGANA_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text })
-        });
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* 입력 섹션 */}
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-700">일본어 문장 입력</h2>
+            
+            <div className="mb-4">
+              <input
+                type="text"
+                value={sentence}
+                onChange={(e) => setSentence(e.target.value)}
+                className="w-full px-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="恋愛相談ね？"
+              />
+            </div>
 
-        const data = await response.json();
+            <div className="flex gap-3 mb-6">
+              <button
+                onClick={analyzeSentence}
+                disabled={isAnalyzing || !sentence.trim()}
+                className="flex-1 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold"
+              >
+                {isAnalyzing ? '분석 중...' : '🔍 자동 분석'}
+              </button>
+              <button
+                onClick={loadExample}
+                className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-semibold"
+              >
+                예시
+              </button>
+            </div>
 
-        if (!response.ok) {
-            throw new Error(data.error || `API 오류 ${response.status}`);
+            {/* 분석 결과 */}
+            {words.length > 0 && (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                <h3 className="font-semibold text-gray-700 mb-2">분석 결과:</h3>
+                {words.map((word, index) => (
+                  <div key={index} className="border-l-4 border-blue-500 bg-blue-50 rounded-lg p-4">
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <div className="text-xs text-gray-600 mb-1">일본어</div>
+                        <div className="text-lg font-bold">{word.japanese}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-600 mb-1">읽기</div>
+                        <div className="text-lg text-blue-600">{word.reading}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-600 mb-1">의미</div>
+                        <div className="text-lg text-green-600">{word.korean}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 미리보기 섹션 */}
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-700">미리보기</h2>
+            
+            <div className="bg-black rounded-lg aspect-video flex items-center justify-center mb-4 relative overflow-hidden">
+              {currentIndex === -1 && !isPlaying && (
+                <div className="text-white text-center">
+                  <Volume2 size={48} className="mx-auto mb-4 opacity-50" />
+                  <p className="text-lg">재생 버튼을 눌러주세요</p>
+                </div>
+              )}
+              
+              {currentIndex >= 0 && currentIndex < words.length && (
+                <div className="text-center animate-fadeIn">
+                  <div className="text-white text-6xl font-bold mb-4">
+                    {showMeaning ? words[currentIndex].korean : words[currentIndex].reading}
+                  </div>
+                  <div className="text-gray-400 text-2xl">
+                    {!showMeaning && words[currentIndex].japanese}
+                  </div>
+                </div>
+              )}
+
+              {currentIndex === -2 && (
+                <div className="text-center animate-fadeIn px-4">
+                  <div className="text-white text-4xl font-bold mb-4 break-words">
+                    {showMeaning 
+                      ? words.map(w => w.korean).join(' ')
+                      : words.map(w => w.reading).join('')
+                    }
+                  </div>
+                  <div className="text-gray-400 text-xl">
+                    {showMeaning ? sentence : '완성된 문장'}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-4 mb-4">
+              {!isPlaying ? (
+                <button
+                  onClick={playAnimation}
+                  disabled={words.length === 0}
+                  className="flex-1 px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold"
+                >
+                  <Play size={20} />
+                  음성 재생
+                </button>
+              ) : (
+                <button
+                  onClick={stopAnimation}
+                  className="flex-1 px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition flex items-center justify-center gap-2 font-semibold"
+                >
+                  <Pause size={20} />
+                  정지
+                </button>
+              )}
+              
+              <button
+                onClick={downloadSRT}
+                disabled={words.length === 0}
+                className="flex-1 px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold"
+              >
+                <Download size={20} />
+                자막 다운로드
+              </button>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="font-semibold text-blue-900 mb-2">💡 사용 방법</h3>
+              <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                <li>설정에서 Render API URL 입력</li>
+                <li>일본어 문장 입력 후 "자동 분석"</li>
+                <li>"음성 재생"으로 확인</li>
+                <li>"자막 다운로드"로 SRT 파일 받기</li>
+                <li>영상 편집 프로그램에서 사용</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
         }
-
-        outputMain.textContent = data.original || "변환 결과 없음";
-        outputBreakdown.textContent = data.analysis || "분석 결과 없음";
-
-    } catch (err) {
-        console.error("후리가나 변환 오류:", err);
-        outputMain.textContent = `❌ 오류: ${err.message}`;
-        outputBreakdown.textContent = "";
-    }
-};
-
-// 초기화
-console.log("🚀 Whisper API 받아쓰기 준비 완료");
-console.log("Whisper URL:", WHISPER_URL);
-console.log("Furigana URL:", FURIGANA_URL);
-</script>
-
-</body>
-</html>
-
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+      `}</style>
+    </div>
+  );
+}
