@@ -287,6 +287,67 @@
             color: #0277bd;
             font-weight: 500
         }
+
+        /* 문장 목록 스타일 */
+        .sentence-list {
+            margin: 16px 0;
+            padding: 16px;
+            background: #f0f4ff;
+            border-radius: 8px;
+            border: 1px solid #c5d9ff;
+            max-height: 300px;
+            overflow-y: auto
+        }
+
+        .sentence-item {
+            padding: 10px 14px;
+            margin: 6px 0;
+            background: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid #2b7cff;
+            font-family: 'Noto Sans JP', sans-serif;
+            font-size: 15px;
+            color: #333
+        }
+
+        .sentence-item:hover {
+            background: #e3f2fd;
+            transform: translateX(4px);
+            box-shadow: 0 2px 6px rgba(43, 124, 255, 0.2)
+        }
+
+        .sentence-item.selected {
+            background: #2b7cff;
+            color: #fff;
+            font-weight: 600
+        }
+
+        input[type="file"] {
+            padding: 8px;
+            border: 2px dashed #2b7cff;
+            border-radius: 8px;
+            background: #f8faff;
+            cursor: pointer;
+            width: 100%;
+            box-sizing: border-box
+        }
+
+        input[type="file"]::-webkit-file-upload-button {
+            padding: 8px 16px;
+            background: #2b7cff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-right: 10px
+        }
+
+        input[type="file"]::-webkit-file-upload-button:hover {
+            background: #1a5fd9
+        }
     </style>
 </head>
 
@@ -294,6 +355,15 @@
     <div class="panel">
         <h2>🇯🇵 일본어 자동 독음 + TTS 재생기</h2>
         <div class="hint">일본어 문장을 입력하고 "자동독음 생성"을 누르면 GPT가 형태소별로 히라가나 읽기와 한국어 발음을 생성합니다.</div>
+
+        <label>📁 일본어 문장 파일 업로드 (선택사항)</label>
+        <input type="file" id="fileInput" accept=".txt,.csv" style="margin-bottom: 12px;">
+        <div class="hint" style="margin-top: 0;">TXT 또는 CSV 파일을 업로드하면 문장 목록이 표시됩니다.</div>
+
+        <div class="sentence-list" id="sentenceListSection" style="display:none">
+            <h3 style="margin: 16px 0 8px 0; color: #2b7cff; font-size: 16px;">📋 문장 목록 (클릭하여 선택)</h3>
+            <div id="sentenceList"></div>
+        </div>
 
         <label>일본어 문장 입력</label>
         <textarea id="japanese" rows="3" placeholder="예: 今日の晩ご飯は何を食べようか">今日の晩ご飯は何を食べようか</textarea>
