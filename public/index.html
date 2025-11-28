@@ -217,6 +217,76 @@
         .meaning-text {
             color: #4b5563
         }
+
+        /* 누적 센텐스 스타일 */
+        .cumulative-section {
+            margin-top: 24px;
+            padding: 20px;
+            background: #fff9f0;
+            border-radius: 10px;
+            border: 1px solid #ffe0b2
+        }
+
+        .cumulative-section h3 {
+            margin: 0 0 16px 0;
+            color: #e65100;
+            font-size: 17px;
+            font-weight: 700
+        }
+
+        .cumulative-item {
+            padding: 16px;
+            margin-bottom: 16px;
+            background: #fff;
+            border-radius: 8px;
+            border-left: 4px solid #ff9800;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+            opacity: 0;
+            animation: fadeIn 0.4s forwards
+        }
+
+        .cumulative-number {
+            font-weight: 700;
+            color: #ff6f00;
+            margin-bottom: 10px;
+            font-size: 15px
+        }
+
+        .cumulative-jp {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a237e;
+            margin-bottom: 6px;
+            font-family: 'Noto Sans JP', sans-serif;
+            line-height: 1.5
+        }
+
+        .cumulative-detail {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 4px;
+            font-size: 14px;
+            line-height: 1.6
+        }
+
+        .cumulative-detail code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Noto Sans JP', monospace;
+            margin: 0 4px;
+            color: #d32f2f
+        }
+
+        .cumulative-arrow {
+            margin: 0 8px;
+            color: #999
+        }
+
+        .cumulative-translation {
+            color: #0277bd;
+            font-weight: 500
+        }
     </style>
 </head>
 
@@ -226,7 +296,7 @@
         <div class="hint">일본어 문장을 입력하고 "자동독음 생성"을 누르면 GPT가 형태소별로 히라가나 읽기와 한국어 발음을 생성합니다.</div>
 
         <label>일본어 문장 입력</label>
-        <textarea id="japanese" rows="3" placeholder="예: 恋なんて面倒だよ。">恋なんて面倒だよ。</textarea>
+        <textarea id="japanese" rows="3" placeholder="예: 今日の晩ご飯は何を食べようか">今日の晩ご飯は何を食べようか</textarea>
 
         <div class="controls">
             <button id="gen">자동독음 생성</button>
@@ -249,6 +319,12 @@
 
         <div class="small">💡 출력 형식: <ruby>日本語<rt>ひらがな｜한글</rt></ruby></div>
 
+        <!-- 누적 센텐스 결과 섹션 -->
+        <div class="cumulative-section" id="cumulativeSection" style="display:none">
+            <h3>📝 누적 센텐스 결과</h3>
+            <div id="cumulativeList"></div>
+        </div>
+
         <div class="meaning-section" id="meaningSection" style="display:none">
             <h3>📖 단어 뜻 & 문장 번역</h3>
             <div id="meaningList"></div>
@@ -267,27 +343,56 @@
         const clearBtn = document.getElementById('clear');
         const meaningSection = document.getElementById('meaningSection');
         const meaningList = document.getElementById('meaningList');
+        const cumulativeSection = document.getElementById('cumulativeSection');
+        const cumulativeList = document.getElementById('cumulativeList');
 
         let wordSpans = [];
         let currentUtter = null;
-        let apiResultData = []; // Store API result for meanings
+        let apiResultData = [];
 
-        // Update rate label
         rateEl.addEventListener('input', () => {
             rateLabel.textContent = parseFloat(rateEl.value).toFixed(2) + 'x';
         });
 
-        // Clear preview
         function clearPreview() {
             preview.innerHTML = '';
             wordSpans = [];
             if (currentUtter) speechSynthesis.cancel();
             meaningSection.style.display = 'none';
             meaningList.innerHTML = '';
+            cumulativeSection.style.display = 'none';
+            cumulativeList.innerHTML = '';
             apiResultData = [];
         }
 
-        // Build preview from API result
+        function buildCumulativeResults(arr) {
+            cumulativeList.innerHTML = '';
+            
+            arr.forEach((item, idx) => {
+                const div = document.createElement('div');
+                div.className = 'cumulative-item';
+                div.style.animationDelay = `${idx * 0.1}s`;
+                
+                const number = document.createElement('div');
+                number.className = 'cumulative-number';
+                number.textContent = `**${idx + 1}. ${item.cumulativeJp}**`;
+                
+                const detail = document.createElement('div');
+                detail.className = 'cumulative-detail';
+                detail.innerHTML = `
+                    <span>• <code>${item.cumulativeJp}</code> (${item.cumulativeKr})</span>
+                    <span class="cumulative-arrow">→</span>
+                    <span class="cumulative-translation">${item.cumulativeTranslation}</span>
+                `;
+                
+                div.appendChild(number);
+                div.appendChild(detail);
+                cumulativeList.appendChild(div);
+            });
+            
+            cumulativeSection.style.display = 'block';
+        }
+
         function buildFromApiResult(arr) {
             clearPreview();
 
@@ -297,8 +402,10 @@
                 return;
             }
 
-            // Store for meaning display and init flags
             apiResultData = arr.map(item => ({ ...item, meaningShown: false }));
+
+            // 누적 센텐스 결과 표시
+            buildCumulativeResults(arr);
 
             arr.forEach((seg, idx) => {
                 const sp = document.createElement('span');
@@ -325,12 +432,9 @@
         }
 
         function revealNext(idx) {
-            // Reveal words and meanings up to the current index
             for (let i = 0; i <= idx && i < apiResultData.length; i++) {
-                // Visual reveal
                 if (wordSpans[i]) wordSpans[i].classList.add('revealed');
 
-                // Meaning reveal (check flag to avoid duplicates/re-adding)
                 if (!apiResultData[i].meaningShown) {
                     if (apiResultData[i].meaning) {
                         addMeaning(apiResultData[i].jp, apiResultData[i].meaning, 'word');
@@ -347,11 +451,7 @@
             revealNext(apiResultData.length - 1);
         }
 
-        // Add meaning to the list
         function addMeaning(word, meaning, type) {
-            // Note: Duplicate check removed to allow "log" style accumulation if desired,
-            // but since we use meaningShown flag, we won't get duplicates for the same playback session unless reset.
-
             const div = document.createElement('div');
             div.className = `meaning-item ${type === 'word' ? 'word-meaning' : 'sentence-meaning'}`;
 
@@ -362,11 +462,9 @@
             }
 
             meaningList.appendChild(div);
-            // Scroll to bottom
             meaningList.scrollTop = meaningList.scrollHeight;
         }
 
-        // Play TTS + reveal sequence
         function playSequence() {
             const text = japaneseEl.value.trim();
             if (!text) return;
@@ -378,22 +476,18 @@
 
             if (currentUtter) speechSynthesis.cancel();
 
-            // Reset meaning shown flags for replay
             apiResultData.forEach(d => d.meaningShown = false);
-            meaningList.innerHTML = ''; // Clear meanings to start fresh accumulation
+            meaningList.innerHTML = '';
             wordSpans.forEach(s => s.classList.remove('revealed'));
 
-            // Calculate start indices for mapping boundary events
             let currentIndex = 0;
             apiResultData.forEach(item => {
-                // Find where this word starts in the text (simple heuristic)
-                // We search from the last position to handle duplicate words correctly in order
                 const foundIndex = text.indexOf(item.jp, currentIndex);
                 if (foundIndex !== -1) {
                     item.startIndex = foundIndex;
                     currentIndex = foundIndex + item.jp.length;
                 } else {
-                    item.startIndex = currentIndex; // Fallback
+                    item.startIndex = currentIndex;
                 }
             });
 
@@ -409,8 +503,6 @@
             u.onboundary = (event) => {
                 if (event.name === 'word' || event.name === 'sentence') {
                     const charIndex = event.charIndex;
-                    // Find which word this charIndex belongs to
-                    // We look for the last word whose startIndex is <= charIndex
                     let activeIndex = -1;
                     for (let i = 0; i < apiResultData.length; i++) {
                         if (apiResultData[i].startIndex <= charIndex) {
@@ -434,7 +526,6 @@
             speechSynthesis.speak(u);
         }
 
-        // API call
         async function callApi(text) {
             try {
                 const resp = await fetch('/api/furigana', {
@@ -455,7 +546,6 @@
             }
         }
 
-        // Event listeners
         genBtn.addEventListener('click', async () => {
             const text = japaneseEl.value.trim();
             if (!text) {
@@ -494,7 +584,6 @@
             playBtn.disabled = true;
         });
 
-        // Health check on load
         async function checkHealth() {
             try {
                 const r = await fetch('/api/health');
