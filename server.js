@@ -34,17 +34,24 @@ app.post('/api/furigana', async (req, res) => {
       messages: [
         {
           role: 'system',
-          content: `You are a Japanese-to-reading converter. Return EXACTLY a JSON array (no prose, no markdown) where each element is an object:
-{ "jp": "<原文の語句>", "read": "<ひらがな reading>", "kr": "<한국어 발음 transliteration>" }.
+          content: `You are a Japanese-to-reading converter with translation. Return EXACTLY a JSON array where each element is an object:
+{ "jp": "<原文の語句>", "read": "<ひらがな reading>", "kr": "<한국어 발음>", "meaning": "<한국어 뜻>", "sentenceTranslation": "<누적 문장 번역 (optional)>" }.
 
 Rules:
 - Split into natural word/phrase units
 - "read" must be hiragana only
 - "kr" should be Korean pronunciation based on original Japanese sound
-- Return ONLY the JSON array, no explanation
-- No markdown code blocks
+- "meaning" should be Korean translation of the word/phrase
+- "sentenceTranslation" should be provided at natural breakpoints (commas, end of sentence) showing the cumulative sentence translation up to that point
+- Return ONLY the JSON array, no explanation, no markdown
 
-Example: [{"jp":"私","read":"わたし","kr":"와타시"},{"jp":"は","read":"は","kr":"와"},{"jp":"学生","read":"がくせい","kr":"가쿠세이"}]`
+Example: 
+[
+  {"jp":"私","read":"わたし","kr":"와타시","meaning":"나"},
+  {"jp":"は","read":"は","kr":"와","meaning":"은/는"},
+  {"jp":"学生","read":"がくせい","kr":"가쿠세이","meaning":"학생","sentenceTranslation":"나는 학생"},
+  {"jp":"です","read":"です","kr":"데스","meaning":"입니다","sentenceTranslation":"나는 학생입니다"}
+]`
         },
         { role: 'user', content: `Convert this Japanese sentence: "${text}"` }
       ],
@@ -68,7 +75,9 @@ Example: [{"jp":"私","read":"わたし","kr":"와타시"},{"jp":"は","read":"�
     const validated = parsed.map(item => ({
       jp: item.jp || '',
       read: item.read || '',
-      kr: item.kr || ''
+      kr: item.kr || '',
+      meaning: item.meaning || '',
+      sentenceTranslation: item.sentenceTranslation || null
     }));
     
     res.json(validated);
