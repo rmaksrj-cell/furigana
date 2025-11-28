@@ -1,333 +1,517 @@
 <!doctype html>
 <html lang="ko">
+
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>일본어 자동 독음(ruby) + TTS 재생</title>
-<style>
-  body{font-family:system-ui, -apple-system, "Noto Sans JP","Noto Sans KR",Arial; padding:18px; background:#f6f8fb; color:#111}
-  .panel{max-width:980px;margin:0 auto;background:#fff;padding:24px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,0.08)}
-  h2{margin-top:0;color:#2b7cff}
-  label{display:block;margin-top:12px;font-weight:600;color:#333}
-  textarea{width:100%;box-sizing:border-box;padding:12px;border-radius:8px;border:1px solid #ddd;font-size:15px;font-family:inherit}
-  .controls{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
-  button{padding:10px 16px;border-radius:8px;border:0;background:#2b7cff;color:#fff;cursor:pointer;font-weight:600;transition:background .2s}
-  button:hover{background:#1a5fd9}
-  button:disabled{background:#ccc;cursor:not-allowed}
-  .btn-secondary{background:#666}
-  .btn-secondary:hover{background:#555}
-  .preview{margin-top:20px;min-height:160px;padding:24px;border-radius:12px;background:#0b1220;color:#fff;font-size:42px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;line-height:1.6}
-  .word{display:inline-block;margin:0 8px 8px 0;opacity:0.08;transition:opacity .3s,transform .3s;transform:translateY(8px);white-space:nowrap}
-  .word.revealed{opacity:1;transform:none}
-  ruby{font-size:1em;line-height:1}
-  rt{font-size:0.36em;display:block;line-height:1.2;margin-bottom:6px;color:#ffd;font-weight:400}
-  .hint{font-size:13px;color:#666;margin-top:10px;line-height:1.5}
-  .status{font-size:14px;color:#2b7cff;margin-top:12px;font-weight:500}
-  .small{font-size:12px;color:#999;margin-top:10px}
-  .danger{color:#d32f2f}
-  .speed-control{display:flex;align-items:center;gap:8px}
-  .speed-control input{width:160px}
-  .speed-control span{min-width:50px;font-weight:600;color:#333}
-  .meaning-section{margin-top:24px;padding:20px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb}
-  .meaning-section h3{margin:0 0 12px 0;color:#374151;font-size:16px}
-  .meaning-item{padding:8px 12px;margin:6px 0;background:#fff;border-radius:6px;border-left:3px solid #2b7cff;opacity:0;animation:fadeIn 0.4s forwards}
-  .meaning-item.word-meaning{border-left-color:#10b981}
-  .meaning-item.sentence-meaning{border-left-color:#f59e0b;font-weight:500}
-  @keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
-  .meaning-word{font-weight:600;color:#1f2937;margin-right:8px}
-  .meaning-text{color:#4b5563}
-</style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>일본어 자동 독음(ruby) + TTS 재생</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, "Noto Sans JP", "Noto Sans KR", Arial;
+            padding: 18px;
+            background: #f6f8fb;
+            color: #111
+        }
+
+        .panel {
+            max-width: 980px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08)
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #2b7cff
+        }
+
+        label {
+            display: block;
+            margin-top: 12px;
+            font-weight: 600;
+            color: #333
+        }
+
+        textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 15px;
+            font-family: inherit
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 14px;
+            flex-wrap: wrap
+        }
+
+        button {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 0;
+            background: #2b7cff;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background .2s
+        }
+
+        button:hover {
+            background: #1a5fd9
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed
+        }
+
+        .btn-secondary {
+            background: #666
+        }
+
+        .btn-secondary:hover {
+            background: #555
+        }
+
+        .preview {
+            margin-top: 20px;
+            min-height: 160px;
+            padding: 24px;
+            border-radius: 12px;
+            background: #0b1220;
+            color: #fff;
+            font-size: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            line-height: 1.6
+        }
+
+        .word {
+            display: inline-block;
+            margin: 0 8px 8px 0;
+            opacity: 0.08;
+            transition: opacity .3s, transform .3s;
+            transform: translateY(8px);
+            white-space: nowrap
+        }
+
+        .word.revealed {
+            opacity: 1;
+            transform: none
+        }
+
+        ruby {
+            font-size: 1em;
+            line-height: 1
+        }
+
+        rt {
+            font-size: 0.36em;
+            display: block;
+            line-height: 1.2;
+            margin-bottom: 6px;
+            color: #ffd;
+            font-weight: 400
+        }
+
+        .hint {
+            font-size: 13px;
+            color: #666;
+            margin-top: 10px;
+            line-height: 1.5
+        }
+
+        .status {
+            font-size: 14px;
+            color: #2b7cff;
+            margin-top: 12px;
+            font-weight: 500
+        }
+
+        .small {
+            font-size: 12px;
+            color: #999;
+            margin-top: 10px
+        }
+
+        .danger {
+            color: #d32f2f
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .speed-control input {
+            width: 160px
+        }
+
+        .speed-control span {
+            min-width: 50px;
+            font-weight: 600;
+            color: #333
+        }
+
+        .meaning-section {
+            margin-top: 24px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb
+        }
+
+        .meaning-section h3 {
+            margin: 0 0 12px 0;
+            color: #374151;
+            font-size: 16px
+        }
+
+        .meaning-item {
+            padding: 8px 12px;
+            margin: 6px 0;
+            background: #fff;
+            border-radius: 6px;
+            border-left: 3px solid #2b7cff;
+            opacity: 0;
+            animation: fadeIn 0.4s forwards
+        }
+
+        .meaning-item.word-meaning {
+            border-left-color: #10b981
+        }
+
+        .meaning-item.sentence-meaning {
+            border-left-color: #f59e0b;
+            font-weight: 500
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .meaning-word {
+            font-weight: 600;
+            color: #1f2937;
+            margin-right: 8px
+        }
+
+        .meaning-text {
+            color: #4b5563
+        }
+    </style>
 </head>
+
 <body>
-  <div class="panel">
-    <h2>🇯🇵 일본어 자동 독음 + TTS 재생기</h2>
-    <div class="hint">일본어 문장을 입력하고 "자동독음 생성"을 누르면 GPT가 형태소별로 히라가나 읽기와 한국어 발음을 생성합니다.</div>
+    <div class="panel">
+        <h2>🇯🇵 일본어 자동 독음 + TTS 재생기</h2>
+        <div class="hint">일본어 문장을 입력하고 "자동독음 생성"을 누르면 GPT가 형태소별로 히라가나 읽기와 한국어 발음을 생성합니다.</div>
 
-    <label>일본어 문장 입력</label>
-    <textarea id="japanese" rows="3" placeholder="예: 恋なんて面倒だよ。">恋なんて面倒だよ。</textarea>
+        <label>일본어 문장 입력</label>
+        <textarea id="japanese" rows="3" placeholder="예: 恋なんて面倒だよ。">恋なんて面倒だよ。</textarea>
 
-    <div class="controls">
-      <button id="gen">자동독음 생성</button>
-      <button id="play">▶ 재생</button>
-      <button id="pause" class="btn-secondary">⏸ 일시정지</button>
-      <button id="clear" class="btn-secondary">🔄 초기화</button>
+        <div class="controls">
+            <button id="gen">자동독음 생성</button>
+            <button id="play">▶ 재생</button>
+            <button id="pause" class="btn-secondary">⏸ 일시정지</button>
+            <button id="clear" class="btn-secondary">🔄 초기화</button>
+        </div>
+
+        <div class="controls">
+            <div class="speed-control">
+                <label style="margin:0">재생 속도:</label>
+                <input id="rate" type="range" min="0.6" max="2.0" step="0.05" value="1.0" />
+                <span id="rateLabel">1.00x</span>
+            </div>
+        </div>
+
+        <div class="status" id="status">상태: 준비됨</div>
+
+        <div class="preview" id="preview" aria-live="polite"></div>
+
+        <div class="small">💡 출력 형식: <ruby>日本語<rt>ひらがな｜한글</rt></ruby></div>
+
+        <div class="meaning-section" id="meaningSection" style="display:none">
+            <h3>📖 단어 뜻 & 문장 번역</h3>
+            <div id="meaningList"></div>
+        </div>
     </div>
 
-    <div class="controls">
-      <div class="speed-control">
-        <label style="margin:0">재생 속도:</label>
-        <input id="rate" type="range" min="0.6" max="2.0" step="0.05" value="1.0"/>
-        <span id="rateLabel">1.00x</span>
-      </div>
-    </div>
+    <script>
+        const statusEl = document.getElementById('status');
+        const japaneseEl = document.getElementById('japanese');
+        const preview = document.getElementById('preview');
+        const rateEl = document.getElementById('rate');
+        const rateLabel = document.getElementById('rateLabel');
+        const genBtn = document.getElementById('gen');
+        const playBtn = document.getElementById('play');
+        const pauseBtn = document.getElementById('pause');
+        const clearBtn = document.getElementById('clear');
+        const meaningSection = document.getElementById('meaningSection');
+        const meaningList = document.getElementById('meaningList');
 
-    <div class="status" id="status">상태: 준비됨</div>
+        let wordSpans = [];
+        let currentUtter = null;
+        let apiResultData = []; // Store API result for meanings
 
-    <div class="preview" id="preview" aria-live="polite"></div>
-    
-    <div class="small">💡 출력 형식: <ruby>日本語<rt>ひらがな｜한글</rt></ruby></div>
-    
-    <div class="meaning-section" id="meaningSection" style="display:none">
-      <h3>📖 단어 뜻 & 문장 번역</h3>
-      <div id="meaningList"></div>
-    </div>
-  </div>
+        // Update rate label
+        rateEl.addEventListener('input', () => {
+            rateLabel.textContent = parseFloat(rateEl.value).toFixed(2) + 'x';
+        });
 
-<script>
-const statusEl = document.getElementById('status');
-const japaneseEl = document.getElementById('japanese');
-const preview = document.getElementById('preview');
-const rateEl = document.getElementById('rate');
-const rateLabel = document.getElementById('rateLabel');
-const genBtn = document.getElementById('gen');
-const playBtn = document.getElementById('play');
-const pauseBtn = document.getElementById('pause');
-const clearBtn = document.getElementById('clear');
-const meaningSection = document.getElementById('meaningSection');
-const meaningList = document.getElementById('meaningList');
+        // Clear preview
+        function clearPreview() {
+            preview.innerHTML = '';
+            wordSpans = [];
+            if (currentUtter) speechSynthesis.cancel();
+            meaningSection.style.display = 'none';
+            meaningList.innerHTML = '';
+            apiResultData = [];
+        }
 
-let wordSpans = [];
-let timers = [];
-let currentUtter = null;
-let apiResultData = []; // Store API result for meanings
+        // Build preview from API result
+        function buildFromApiResult(arr) {
+            clearPreview();
 
-// Update rate label
-rateEl.addEventListener('input', () => {
-  rateLabel.textContent = parseFloat(rateEl.value).toFixed(2) + 'x';
-});
+            if (!Array.isArray(arr) || arr.length === 0) {
+                statusEl.textContent = '상태: 변환 결과가 비어 있습니다.';
+                preview.innerHTML = '<div style="opacity:0.5;font-size:18px;">결과 없음</div>';
+                return;
+            }
 
-// Clear preview
-function clearPreview(){
-  preview.innerHTML = '';
-  wordSpans = [];
-  timers.forEach(t => clearTimeout(t));
-  timers = [];
-  if(currentUtter) speechSynthesis.cancel();
-  meaningSection.style.display = 'none';
-  meaningList.innerHTML = '';
-  apiResultData = [];
-}
+            // Store for meaning display and init flags
+            apiResultData = arr.map(item => ({ ...item, meaningShown: false }));
 
-// Build preview from API result
-function buildFromApiResult(arr){
-  clearPreview();
-  
-  if(!Array.isArray(arr) || arr.length === 0){
-    statusEl.textContent = '상태: 변환 결과가 비어 있습니다.';
-    preview.innerHTML = '<div style="opacity:0.5;font-size:18px;">결과 없음</div>';
-    return;
-  }
-  
-  apiResultData = arr; // Store for meaning display
-  
-  arr.forEach((seg, idx) => {
-    const sp = document.createElement('span');
-    sp.className = 'word';
-    sp.dataset.index = idx;
+            arr.forEach((seg, idx) => {
+                const sp = document.createElement('span');
+                sp.className = 'word';
+                sp.dataset.index = idx;
 
-    const rb = document.createElement('ruby');
-    rb.textContent = seg.jp;
+                const rb = document.createElement('ruby');
+                rb.textContent = seg.jp;
 
-    const rt = document.createElement('rt');
-    const read = seg.read || '';
-    const kr = seg.kr || '';
-    rt.textContent = read + (read && kr ? '｜' : '') + kr;
+                const rt = document.createElement('rt');
+                const read = seg.read || '';
+                const kr = seg.kr || '';
+                rt.textContent = read + (read && kr ? '｜' : '') + kr;
 
-    if(rt.textContent) rb.appendChild(rt);
-    sp.appendChild(rb);
-    preview.appendChild(sp);
-    wordSpans.push(sp);
-  });
-  
-  statusEl.textContent = '상태: 변환 완료! 재생 버튼을 눌러보세요.';
-  playBtn.disabled = false;
-  meaningSection.style.display = 'block';
-}
+                if (rt.textContent) rb.appendChild(rt);
+                sp.appendChild(rb);
+                preview.appendChild(sp);
+                wordSpans.push(sp);
+            });
 
-// Schedule reveal animations
-function scheduleReveals(){
-  timers.forEach(t => clearTimeout(t));
-  timers = [];
-  
-  const totalChars = japaneseEl.value.replace(/\s+/g, '').length || 1;
-  const baseMsPerChar = 100;
-  const estTotal = (baseMsPerChar * totalChars) / parseFloat(rateEl.value);
+            statusEl.textContent = '상태: 변환 완료! 재생 버튼을 눌러보세요.';
+            playBtn.disabled = false;
+            meaningSection.style.display = 'block';
+        }
 
-  const weights = wordSpans.map(s => s.textContent.replace(/\s+/g, '').length);
-  const totalWeight = weights.reduce((a,b) => a+b, 0) || 1;
+        function revealNext(idx) {
+            // Reveal words and meanings up to the current index
+            for (let i = 0; i <= idx && i < apiResultData.length; i++) {
+                // Visual reveal
+                if (wordSpans[i]) wordSpans[i].classList.add('revealed');
 
-  let acc = 0;
-  for(let i = 0; i < wordSpans.length; i++){
-    acc += (weights[i] / totalWeight) * estTotal;
-    ((idx, at) => {
-      const t = setTimeout(() => revealNext(idx), Math.max(0, Math.floor(at)));
-      timers.push(t);
-    })(i, acc);
-  }
-}
+                // Meaning reveal (check flag to avoid duplicates/re-adding)
+                if (!apiResultData[i].meaningShown) {
+                    if (apiResultData[i].meaning) {
+                        addMeaning(apiResultData[i].jp, apiResultData[i].meaning, 'word');
+                    }
+                    if (apiResultData[i].sentenceTranslation) {
+                        addMeaning('문장 번역', apiResultData[i].sentenceTranslation, 'sentence');
+                    }
+                    apiResultData[i].meaningShown = true;
+                }
+            }
+        }
 
-function revealNext(idx){
-  for(let i = 0; i <= idx && i < wordSpans.length; i++){
-    wordSpans[i].classList.add('revealed');
-  }
-  
-  // Show word meaning when revealed
-  if(idx < apiResultData.length && apiResultData[idx].meaning){
-    addMeaning(apiResultData[idx].jp, apiResultData[idx].meaning, 'word');
-  }
-  
-  // Show sentence translation at specific checkpoints
-  if(apiResultData[idx] && apiResultData[idx].sentenceTranslation){
-    addMeaning('문장 번역', apiResultData[idx].sentenceTranslation, 'sentence');
-  }
-}
+        function revealAll() {
+            revealNext(apiResultData.length - 1);
+        }
 
-function revealAll(){
-  wordSpans.forEach(s => s.classList.add('revealed'));
-  
-  // Show all remaining meanings
-  apiResultData.forEach((seg, idx) => {
-    if(seg.meaning){
-      addMeaning(seg.jp, seg.meaning, 'word');
-    }
-  });
-  
-  // Show final sentence translation if exists
-  const lastItem = apiResultData[apiResultData.length - 1];
-  if(lastItem && lastItem.sentenceTranslation){
-    addMeaning('전체 문장', lastItem.sentenceTranslation, 'sentence');
-  }
-}
+        // Add meaning to the list
+        function addMeaning(word, meaning, type) {
+            // Note: Duplicate check removed to allow "log" style accumulation if desired,
+            // but since we use meaningShown flag, we won't get duplicates for the same playback session unless reset.
 
-// Add meaning to the list
-function addMeaning(word, meaning, type){
-  const existing = Array.from(meaningList.children).find(
-    el => el.textContent.includes(word) && el.textContent.includes(meaning)
-  );
-  if(existing) return; // Don't duplicate
-  
-  const div = document.createElement('div');
-  div.className = `meaning-item ${type === 'word' ? 'word-meaning' : 'sentence-meaning'}`;
-  
-  if(type === 'word'){
-    div.innerHTML = `<span class="meaning-word">${word}</span><span class="meaning-text">${meaning}</span>`;
-  } else {
-    div.innerHTML = `<span class="meaning-word">💬 ${word}:</span><span class="meaning-text"> ${meaning}</span>`;
-  }
-  
-  meaningList.appendChild(div);
-}
+            const div = document.createElement('div');
+            div.className = `meaning-item ${type === 'word' ? 'word-meaning' : 'sentence-meaning'}`;
 
-// Play TTS + reveal sequence
-function playSequence(){
-  const text = japaneseEl.value.trim();
-  if(!text) return;
-  
-  if(wordSpans.length === 0){
-    statusEl.textContent = '먼저 "자동독음 생성"을 눌러주세요.';
-    return;
-  }
+            if (type === 'word') {
+                div.innerHTML = `<span class="meaning-word">${word}</span><span class="meaning-text">${meaning}</span>`;
+            } else {
+                div.innerHTML = `<span class="meaning-word">💬 ${word}:</span><span class="meaning-text"> ${meaning}</span>`;
+            }
 
-  if(currentUtter) speechSynthesis.cancel();
-  timers.forEach(t => clearTimeout(t));
-  timers = [];
+            meaningList.appendChild(div);
+            // Scroll to bottom
+            meaningList.scrollTop = meaningList.scrollHeight;
+        }
 
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'ja-JP';
-  u.rate = parseFloat(rateEl.value);
-  currentUtter = u;
+        // Play TTS + reveal sequence
+        function playSequence() {
+            const text = japaneseEl.value.trim();
+            if (!text) return;
 
-  u.onstart = () => {
-    revealNext(0);
-    scheduleReveals();
-    statusEl.textContent = '상태: TTS 재생 중...';
-  };
-  
-  u.onend = () => {
-    revealAll();
-    statusEl.textContent = '상태: 재생 완료!';
-  };
+            if (wordSpans.length === 0) {
+                statusEl.textContent = '먼저 "자동독음 생성"을 눌러주세요.';
+                return;
+            }
 
-  speechSynthesis.speak(u);
-}
+            if (currentUtter) speechSynthesis.cancel();
 
-// API call
-async function callApi(text){
-  try{
-    const resp = await fetch('/api/furigana', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ text })
-    });
-    
-    if(!resp.ok){
-      const error = await resp.json();
-      throw new Error(error.error || `${resp.status} ${resp.statusText}`);
-    }
-    
-    const data = await resp.json();
-    return data;
-  } catch(e) {
-    throw e;
-  }
-}
+            // Reset meaning shown flags for replay
+            apiResultData.forEach(d => d.meaningShown = false);
+            meaningList.innerHTML = ''; // Clear meanings to start fresh accumulation
+            wordSpans.forEach(s => s.classList.remove('revealed'));
 
-// Event listeners
-genBtn.addEventListener('click', async () => {
-  const text = japaneseEl.value.trim();
-  if(!text){ 
-    statusEl.textContent = '상태: 일본어 문장을 입력하세요.'; 
-    return; 
-  }
-  
-  statusEl.textContent = '상태: GPT로 변환 중... ⏳';
-  genBtn.disabled = true;
-  playBtn.disabled = true;
-  
-  try{
-    const arr = await callApi(text);
-    buildFromApiResult(arr);
-  } catch(err) {
-    console.error(err);
-    statusEl.textContent = '상태: 변환 실패 ❌';
-    statusEl.className = 'status danger';
-    alert('변환 API 호출 실패:\n' + (err.message || err));
-  } finally {
-    genBtn.disabled = false;
-    statusEl.className = 'status';
-  }
-});
+            // Calculate start indices for mapping boundary events
+            let currentIndex = 0;
+            apiResultData.forEach(item => {
+                // Find where this word starts in the text (simple heuristic)
+                // We search from the last position to handle duplicate words correctly in order
+                const foundIndex = text.indexOf(item.jp, currentIndex);
+                if (foundIndex !== -1) {
+                    item.startIndex = foundIndex;
+                    currentIndex = foundIndex + item.jp.length;
+                } else {
+                    item.startIndex = currentIndex; // Fallback
+                }
+            });
 
-playBtn.addEventListener('click', () => playSequence());
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'ja-JP';
+            u.rate = parseFloat(rateEl.value);
+            currentUtter = u;
 
-pauseBtn.addEventListener('click', () => { 
-  if(speechSynthesis.speaking) speechSynthesis.pause(); 
-});
+            u.onstart = () => {
+                statusEl.textContent = '상태: TTS 재생 중...';
+            };
 
-clearBtn.addEventListener('click', () => { 
-  japaneseEl.value = ''; 
-  clearPreview(); 
-  statusEl.textContent = '상태: 초기화됨';
-  playBtn.disabled = true;
-});
+            u.onboundary = (event) => {
+                if (event.name === 'word' || event.name === 'sentence') {
+                    const charIndex = event.charIndex;
+                    // Find which word this charIndex belongs to
+                    // We look for the last word whose startIndex is <= charIndex
+                    let activeIndex = -1;
+                    for (let i = 0; i < apiResultData.length; i++) {
+                        if (apiResultData[i].startIndex <= charIndex) {
+                            activeIndex = i;
+                        } else {
+                            break;
+                        }
+                    }
 
-// Health check on load
-async function checkHealth(){
-  try{
-    const r = await fetch('/api/health');
-    if(r.ok){ 
-      statusEl.textContent = '상태: 서버 연결됨 ✓'; 
-    } else { 
-      statusEl.textContent = '상태: 서버 응답 없음'; 
-    }
-  } catch(e) {
-    statusEl.textContent = '상태: 서버 연결 실패';
-    statusEl.className = 'status danger';
-  }
-}
+                    if (activeIndex !== -1) {
+                        revealNext(activeIndex);
+                    }
+                }
+            };
 
-checkHealth();
-playBtn.disabled = true;
-</script>
+            u.onend = () => {
+                revealAll();
+                statusEl.textContent = '상태: 재생 완료!';
+            };
+
+            speechSynthesis.speak(u);
+        }
+
+        // API call
+        async function callApi(text) {
+            try {
+                const resp = await fetch('/api/furigana', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+
+                if (!resp.ok) {
+                    const error = await resp.json();
+                    throw new Error(error.error || `${resp.status} ${resp.statusText}`);
+                }
+
+                const data = await resp.json();
+                return data;
+            } catch (e) {
+                throw e;
+            }
+        }
+
+        // Event listeners
+        genBtn.addEventListener('click', async () => {
+            const text = japaneseEl.value.trim();
+            if (!text) {
+                statusEl.textContent = '상태: 일본어 문장을 입력하세요.';
+                return;
+            }
+
+            statusEl.textContent = '상태: GPT로 변환 중... ⏳';
+            genBtn.disabled = true;
+            playBtn.disabled = true;
+
+            try {
+                const arr = await callApi(text);
+                buildFromApiResult(arr);
+            } catch (err) {
+                console.error(err);
+                statusEl.textContent = '상태: 변환 실패 ❌';
+                statusEl.className = 'status danger';
+                alert('변환 API 호출 실패:\n' + (err.message || err));
+            } finally {
+                genBtn.disabled = false;
+                statusEl.className = 'status';
+            }
+        });
+
+        playBtn.addEventListener('click', () => playSequence());
+
+        pauseBtn.addEventListener('click', () => {
+            if (speechSynthesis.speaking) speechSynthesis.pause();
+        });
+
+        clearBtn.addEventListener('click', () => {
+            japaneseEl.value = '';
+            clearPreview();
+            statusEl.textContent = '상태: 초기화됨';
+            playBtn.disabled = true;
+        });
+
+        // Health check on load
+        async function checkHealth() {
+            try {
+                const r = await fetch('/api/health');
+                if (r.ok) {
+                    statusEl.textContent = '상태: 서버 연결됨 ✓';
+                } else {
+                    statusEl.textContent = '상태: 서버 응답 없음';
+                }
+            } catch (e) {
+                statusEl.textContent = '상태: 서버 연결 실패';
+                statusEl.className = 'status danger';
+            }
+        }
+
+        checkHealth();
+        playBtn.disabled = true;
+    </script>
 </body>
+
 </html>
