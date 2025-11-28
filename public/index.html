@@ -288,6 +288,22 @@
             font-weight: 500
         }
 
+        /* 새로 추가된 단어 하이라이트 */
+        .new-word {
+            background: linear-gradient(120deg, #ffd54f 0%, #ffb300 100%);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            color: #1a237e;
+            box-shadow: 0 2px 4px rgba(255, 179, 0, 0.3);
+            animation: highlight 0.6s ease-in-out;
+        }
+
+        @keyframes highlight {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
         /* 문장 목록 스타일 */
         .sentence-list-container {
             display: grid;
@@ -470,7 +486,27 @@
                 
                 const number = document.createElement('div');
                 number.className = 'cumulative-number';
-                number.textContent = `**${idx + 1}. ${item.cumulativeJp}**`;
+                number.textContent = `${idx + 1}. ${item.cumulativeJp}`;
+                
+                // 새로 추가된 단어 하이라이트 처리
+                const jpText = document.createElement('div');
+                jpText.className = 'cumulative-jp';
+                
+                if (idx === 0) {
+                    // 첫 문장은 전체를 새 단어로 표시
+                    jpText.innerHTML = `<span class="new-word">${item.jp}</span>`;
+                } else {
+                    // 이전 문장과 비교하여 새로운 부분만 하이라이트
+                    const prevJp = arr[idx - 1].cumulativeJp;
+                    const currentJp = item.cumulativeJp;
+                    
+                    if (currentJp.startsWith(prevJp)) {
+                        const newPart = currentJp.slice(prevJp.length);
+                        jpText.innerHTML = `${prevJp}<span class="new-word">${newPart}</span>`;
+                    } else {
+                        jpText.textContent = currentJp;
+                    }
+                }
                 
                 const detail = document.createElement('div');
                 detail.className = 'cumulative-detail';
@@ -481,6 +517,7 @@
                 `;
                 
                 div.appendChild(number);
+                div.appendChild(jpText);
                 div.appendChild(detail);
                 cumulativeList.appendChild(div);
             });
