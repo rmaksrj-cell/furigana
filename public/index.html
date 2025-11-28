@@ -28,6 +28,14 @@
   .speed-control{display:flex;align-items:center;gap:8px}
   .speed-control input{width:160px}
   .speed-control span{min-width:50px;font-weight:600;color:#333}
+  .meaning-section{margin-top:24px;padding:20px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb}
+  .meaning-section h3{margin:0 0 12px 0;color:#374151;font-size:16px}
+  .meaning-item{padding:8px 12px;margin:6px 0;background:#fff;border-radius:6px;border-left:3px solid #2b7cff;opacity:0;animation:fadeIn 0.4s forwards}
+  .meaning-item.word-meaning{border-left-color:#10b981}
+  .meaning-item.sentence-meaning{border-left-color:#f59e0b;font-weight:500}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+  .meaning-word{font-weight:600;color:#1f2937;margin-right:8px}
+  .meaning-text{color:#4b5563}
 </style>
 </head>
 <body>
@@ -58,6 +66,11 @@
     <div class="preview" id="preview" aria-live="polite"></div>
     
     <div class="small">💡 출력 형식: <ruby>日本語<rt>ひらがな｜한글</rt></ruby></div>
+    
+    <div class="meaning-section" id="meaningSection" style="display:none">
+      <h3>📖 단어 뜻 & 문장 번역</h3>
+      <div id="meaningList"></div>
+    </div>
   </div>
 
 <script>
@@ -70,10 +83,13 @@ const genBtn = document.getElementById('gen');
 const playBtn = document.getElementById('play');
 const pauseBtn = document.getElementById('pause');
 const clearBtn = document.getElementById('clear');
+const meaningSection = document.getElementById('meaningSection');
+const meaningList = document.getElementById('meaningList');
 
 let wordSpans = [];
 let timers = [];
 let currentUtter = null;
+let apiResultData = []; // Store API result for meanings
 
 // Update rate label
 rateEl.addEventListener('input', () => {
@@ -87,6 +103,9 @@ function clearPreview(){
   timers.forEach(t => clearTimeout(t));
   timers = [];
   if(currentUtter) speechSynthesis.cancel();
+  meaningSection.style.display = 'none';
+  meaningList.innerHTML = '';
+  apiResultData = [];
 }
 
 // Build preview from API result
@@ -98,6 +117,8 @@ function buildFromApiResult(arr){
     preview.innerHTML = '<div style="opacity:0.5;font-size:18px;">결과 없음</div>';
     return;
   }
+  
+  apiResultData = arr; // Store for meaning display
   
   arr.forEach((seg, idx) => {
     const sp = document.createElement('span');
@@ -120,6 +141,7 @@ function buildFromApiResult(arr){
   
   statusEl.textContent = '상태: 변환 완료! 재생 버튼을 눌러보세요.';
   playBtn.disabled = false;
+  meaningSection.style.display = 'block';
 }
 
 // Schedule reveal animations
@@ -148,10 +170,52 @@ function revealNext(idx){
   for(let i = 0; i <= idx && i < wordSpans.length; i++){
     wordSpans[i].classList.add('revealed');
   }
+  
+  // Show word meaning when revealed
+  if(idx < apiResultData.length && apiResultData[idx].meaning){
+    addMeaning(apiResultData[idx].jp, apiResultData[idx].meaning, 'word');
+  }
+  
+  // Show sentence translation at specific checkpoints
+  if(apiResultData[idx] && apiResultData[idx].sentenceTranslation){
+    addMeaning('문장 번역', apiResultData[idx].sentenceTranslation, 'sentence');
+  }
 }
 
 function revealAll(){
   wordSpans.forEach(s => s.classList.add('revealed'));
+  
+  // Show all remaining meanings
+  apiResultData.forEach((seg, idx) => {
+    if(seg.meaning){
+      addMeaning(seg.jp, seg.meaning, 'word');
+    }
+  });
+  
+  // Show final sentence translation if exists
+  const lastItem = apiResultData[apiResultData.length - 1];
+  if(lastItem && lastItem.sentenceTranslation){
+    addMeaning('전체 문장', lastItem.sentenceTranslation, 'sentence');
+  }
+}
+
+// Add meaning to the list
+function addMeaning(word, meaning, type){
+  const existing = Array.from(meaningList.children).find(
+    el => el.textContent.includes(word) && el.textContent.includes(meaning)
+  );
+  if(existing) return; // Don't duplicate
+  
+  const div = document.createElement('div');
+  div.className = `meaning-item ${type === 'word' ? 'word-meaning' : 'sentence-meaning'}`;
+  
+  if(type === 'word'){
+    div.innerHTML = `<span class="meaning-word">${word}</span><span class="meaning-text">${meaning}</span>`;
+  } else {
+    div.innerHTML = `<span class="meaning-word">💬 ${word}:</span><span class="meaning-text"> ${meaning}</span>`;
+  }
+  
+  meaningList.appendChild(div);
 }
 
 // Play TTS + reveal sequence
