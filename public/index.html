@@ -484,10 +484,6 @@
                 div.className = 'cumulative-item';
                 div.style.animationDelay = `${idx * 0.1}s`;
                 
-                const number = document.createElement('div');
-                number.className = 'cumulative-number';
-                number.textContent = `${idx + 1}. ${item.cumulativeJp}`;
-                
                 // 새로 추가된 단어 하이라이트 처리
                 const jpText = document.createElement('div');
                 jpText.className = 'cumulative-jp';
@@ -516,9 +512,6 @@
                     <span class="cumulative-translation">${item.cumulativeTranslation}</span>
                 `;
                 
-                div.appendChild(number);
-                div.appendChild(jpText);
-                div.appendChild(detail);
                 cumulativeList.appendChild(div);
             });
             
