@@ -35,28 +35,68 @@ app.post('/api/furigana', async (req, res) => {
         {
           role: 'system',
           content: `You are a Japanese-to-reading converter with translation. Return EXACTLY a JSON array where each element is an object:
-{ "jp": "<原文の語句>", "read": "<ひらがな reading>", "kr": "<한국어 발음>", "meaning": "<한국어 뜻>", "sentenceTranslation": "<누적 문장 번역 (optional)>" }.
+{ "jp": "<原文の語句>", "read": "<ひらがな reading>", "kr": "<한국어 발음>", "meaning": "<한국어 뜻>", "cumulativeJp": "<누적 일본어>", "cumulativeRead": "<누적 읽기>", "cumulativeKr": "<누적 한국어 발음>", "cumulativeTranslation": "<누적 번역>" }.
 
 Rules:
-- Split into natural word/phrase units
-- "read" must be hiragana only
-- "kr" should be Korean pronunciation based on original Japanese sound
-- "meaning" should be Korean translation of the word/phrase
-- "sentenceTranslation" should be provided at natural breakpoints (commas, end of sentence) showing the cumulative sentence translation up to that point
+- Split into natural word/phrase units (particles, nouns, verbs, etc.)
+- "read" must be hiragana only for that specific word/phrase
+- "kr" should be Korean pronunciation for that specific word/phrase
+- "meaning" should be Korean translation of that specific word/phrase
+- "cumulativeJp" should show all Japanese text accumulated up to this point
+- "cumulativeRead" should show all readings accumulated up to this point (space-separated)
+- "cumulativeKr" should show all Korean pronunciations accumulated up to this point (space-separated)
+- "cumulativeTranslation" should show the translation of the entire sentence up to this point
+- Provide cumulative fields for EVERY word/phrase in the sentence
 - Return ONLY the JSON array, no explanation, no markdown
 
-Example: 
+Example for "今日の晩ご飯は何を食べようか": 
 [
-  {"jp":"私","read":"わたし","kr":"와타시","meaning":"나"},
-  {"jp":"は","read":"は","kr":"와","meaning":"은/는"},
-  {"jp":"学生","read":"がくせい","kr":"가쿠세이","meaning":"학생","sentenceTranslation":"나는 학생"},
-  {"jp":"です","read":"です","kr":"데스","meaning":"입니다","sentenceTranslation":"나는 학생입니다"}
+  {
+    "jp": "今日の",
+    "read": "きょうの",
+    "kr": "쿄-노",
+    "meaning": "오늘의",
+    "cumulativeJp": "今日の",
+    "cumulativeRead": "きょうの",
+    "cumulativeKr": "쿄-노",
+    "cumulativeTranslation": "오늘의"
+  },
+  {
+    "jp": "晩ご飯は",
+    "read": "ばんごはんは",
+    "kr": "방고항와",
+    "meaning": "저녁밥은",
+    "cumulativeJp": "今日の晩ご飯は",
+    "cumulativeRead": "きょうの ばんごはんは",
+    "cumulativeKr": "쿄-노 방고항와",
+    "cumulativeTranslation": "오늘의 저녁밥은"
+  },
+  {
+    "jp": "何を",
+    "read": "なにを",
+    "kr": "나니오",
+    "meaning": "무엇을",
+    "cumulativeJp": "今日の晩ご飯は何を",
+    "cumulativeRead": "きょうの ばんごはんは なにを",
+    "cumulativeKr": "쿄-노 방고항와 나니오",
+    "cumulativeTranslation": "오늘의 저녁밥은 무엇을"
+  },
+  {
+    "jp": "食べようか",
+    "read": "たべようか",
+    "kr": "타베요-카",
+    "meaning": "먹을까",
+    "cumulativeJp": "今日の晩ご飯は何を食べようか",
+    "cumulativeRead": "きょうの ばんごはんは なにを たべようか",
+    "cumulativeKr": "쿄-노 방고항와 나니오 타베요-카",
+    "cumulativeTranslation": "오늘의 저녁밥은 무엇을 먹을까"
+  }
 ]`
         },
         { role: 'user', content: `Convert this Japanese sentence: "${text}"` }
       ],
       temperature: 0.1,
-      max_tokens: 1000
+      max_tokens: 2000
     });
 
     let content = response.choices[0].message.content.trim();
@@ -77,7 +117,10 @@ Example:
       read: item.read || '',
       kr: item.kr || '',
       meaning: item.meaning || '',
-      sentenceTranslation: item.sentenceTranslation || null
+      cumulativeJp: item.cumulativeJp || '',
+      cumulativeRead: item.cumulativeRead || '',
+      cumulativeKr: item.cumulativeKr || '',
+      cumulativeTranslation: item.cumulativeTranslation || ''
     }));
     
     res.json(validated);
