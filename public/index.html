@@ -6,62 +6,42 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>일본어 자동 독음(ruby) + TTS 재생</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
             font-family: system-ui, -apple-system, "Noto Sans JP", "Noto Sans KR", Arial;
             padding: 18px;
             background: #f6f8fb;
-            color: #111;
+            color: #111
         }
 
         .panel {
             max-width: 980px;
-            margin: 0 auto 20px;
+            margin: 0 auto;
             background: #fff;
             padding: 24px;
             border-radius: 12px;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08)
         }
 
         h2 {
             margin-top: 0;
-            color: #2b7cff;
-        }
-
-        h3 {
-            margin: 0 0 16px 0;
-            color: #e65100;
-            font-size: 17px;
-            font-weight: 700;
+            color: #2b7cff
         }
 
         label {
             display: block;
             margin-top: 12px;
             font-weight: 600;
-            color: #333;
+            color: #333
         }
 
-        textarea,
-        input[type="file"] {
+        textarea {
             width: 100%;
+            box-sizing: border-box;
             padding: 12px;
             border-radius: 8px;
             border: 1px solid #ddd;
             font-size: 15px;
-            font-family: inherit;
-        }
-
-        input[type="file"] {
-            border: 2px dashed #10b981;
-            background: #f0fdf4;
-            cursor: pointer;
-            margin-bottom: 8px;
+            font-family: inherit
         }
 
         .controls {
@@ -69,7 +49,7 @@
             gap: 10px;
             align-items: center;
             margin-top: 14px;
-            flex-wrap: wrap;
+            flex-wrap: wrap
         }
 
         button {
@@ -80,24 +60,24 @@
             color: #fff;
             cursor: pointer;
             font-weight: 600;
-            transition: background .2s;
+            transition: background .2s
         }
 
         button:hover {
-            background: #1a5fd9;
+            background: #1a5fd9
         }
 
         button:disabled {
             background: #ccc;
-            cursor: not-allowed;
+            cursor: not-allowed
         }
 
         .btn-secondary {
-            background: #666;
+            background: #666
         }
 
         .btn-secondary:hover {
-            background: #555;
+            background: #555
         }
 
         .preview {
@@ -112,7 +92,7 @@
             align-items: center;
             justify-content: center;
             flex-wrap: wrap;
-            line-height: 1.6;
+            line-height: 1.6
         }
 
         .word {
@@ -121,17 +101,17 @@
             opacity: 0.08;
             transition: opacity .3s, transform .3s;
             transform: translateY(8px);
-            white-space: nowrap;
+            white-space: nowrap
         }
 
         .word.revealed {
             opacity: 1;
-            transform: none;
+            transform: none
         }
 
         ruby {
             font-size: 1em;
-            line-height: 1;
+            line-height: 1
         }
 
         rt {
@@ -140,42 +120,47 @@
             line-height: 1.2;
             margin-bottom: 6px;
             color: #ffd;
-            font-weight: 400;
+            font-weight: 400
         }
 
-        .hint,
-        .small {
+        .hint {
             font-size: 13px;
             color: #666;
             margin-top: 10px;
-            line-height: 1.5;
+            line-height: 1.5
         }
 
         .status {
             font-size: 14px;
             color: #2b7cff;
             margin-top: 12px;
-            font-weight: 500;
+            font-weight: 500
         }
 
-        .status.danger {
-            color: #d32f2f;
+        .small {
+            font-size: 12px;
+            color: #999;
+            margin-top: 10px
+        }
+
+        .danger {
+            color: #d32f2f
         }
 
         .speed-control {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 8px
         }
 
         .speed-control input {
-            width: 160px;
+            width: 160px
         }
 
         .speed-control span {
             min-width: 50px;
             font-weight: 600;
-            color: #333;
+            color: #333
         }
 
         .meaning-section {
@@ -183,13 +168,13 @@
             padding: 20px;
             background: #f9fafb;
             border-radius: 10px;
-            border: 1px solid #e5e7eb;
+            border: 1px solid #e5e7eb
         }
 
         .meaning-section h3 {
             margin: 0 0 12px 0;
             color: #374151;
-            font-size: 16px;
+            font-size: 16px
         }
 
         .meaning-item {
@@ -199,90 +184,54 @@
             border-radius: 6px;
             border-left: 3px solid #2b7cff;
             opacity: 0;
-            animation: fadeIn 0.4s forwards;
+            animation: fadeIn 0.4s forwards
         }
 
         .meaning-item.word-meaning {
-            border-left-color: #10b981;
+            border-left-color: #10b981
         }
 
         .meaning-item.sentence-meaning {
             border-left-color: #f59e0b;
-            font-weight: 500;
+            font-weight: 500
         }
 
         @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(-10px);
+                transform: translateY(-10px)
             }
 
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translateY(0)
             }
         }
 
         .meaning-word {
             font-weight: 600;
             color: #1f2937;
-            margin-right: 8px;
+            margin-right: 8px
         }
 
         .meaning-text {
-            color: #4b5563;
+            color: #4b5563
         }
 
+        /* 누적 센텐스 스타일 */
         .cumulative-section {
             margin-top: 24px;
             padding: 20px;
             background: #fff9f0;
             border-radius: 10px;
-            border: 1px solid #ffe0b2;
+            border: 1px solid #ffe0b2
         }
 
-        .full-sentence-box {
-            padding: 20px;
-            margin-bottom: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        .full-sentence-label {
-            font-size: 13px;
-            font-weight: 700;
-            color: #fff;
-            opacity: 0.9;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .full-sentence-jp {
-            font-size: 24px;
-            font-weight: 700;
-            color: #fff;
-            margin-bottom: 12px;
-            font-family: 'Noto Sans JP', sans-serif;
-            line-height: 1.6;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .full-sentence-kr {
-            font-size: 16px;
-            color: #f0f0f0;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-
-        .full-sentence-trans {
-            font-size: 18px;
-            color: #fff;
-            font-weight: 600;
-            border-top: 2px solid rgba(255, 255, 255, 0.3);
-            padding-top: 12px;
-            margin-top: 8px;
+        .cumulative-section h3 {
+            margin: 0 0 16px 0;
+            color: #e65100;
+            font-size: 17px;
+            font-weight: 700
         }
 
         .cumulative-item {
@@ -291,9 +240,16 @@
             background: #fff;
             border-radius: 8px;
             border-left: 4px solid #ff9800;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
             opacity: 0;
-            animation: fadeIn 0.4s forwards;
+            animation: fadeIn 0.4s forwards
+        }
+
+        .cumulative-number {
+            font-weight: 700;
+            color: #ff6f00;
+            margin-bottom: 10px;
+            font-size: 15px
         }
 
         .cumulative-jp {
@@ -302,7 +258,7 @@
             color: #1a237e;
             margin-bottom: 6px;
             font-family: 'Noto Sans JP', sans-serif;
-            line-height: 1.5;
+            line-height: 1.5
         }
 
         .cumulative-detail {
@@ -310,7 +266,7 @@
             align-items: baseline;
             margin-bottom: 4px;
             font-size: 14px;
-            line-height: 1.6;
+            line-height: 1.6
         }
 
         .cumulative-detail code {
@@ -319,19 +275,20 @@
             border-radius: 4px;
             font-family: 'Noto Sans JP', monospace;
             margin: 0 4px;
-            color: #d32f2f;
+            color: #d32f2f
         }
 
         .cumulative-arrow {
             margin: 0 8px;
-            color: #999;
+            color: #999
         }
 
         .cumulative-translation {
             color: #0277bd;
-            font-weight: 500;
+            font-weight: 500
         }
 
+        /* 새로 추가된 단어 하이라이트 */
         .new-word {
             background: linear-gradient(120deg, #ffd54f 0%, #ffb300 100%);
             padding: 2px 6px;
@@ -343,24 +300,18 @@
         }
 
         @keyframes highlight {
-
-            0%,
-            100% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.05);
-            }
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
         }
 
+        /* 문장 목록 스타일 */
         .sentence-list-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 10px;
             max-height: 400px;
             overflow-y: auto;
-            padding: 4px;
+            padding: 4px
         }
 
         .sentence-item {
@@ -373,21 +324,21 @@
             font-family: 'Noto Sans JP', sans-serif;
             font-size: 15px;
             color: #333;
-            line-height: 1.5;
+            line-height: 1.5
         }
 
         .sentence-item:hover {
             background: #f0f9ff;
             border-color: #10b981;
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.2);
+            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.2)
         }
 
         .sentence-item.selected {
             background: #10b981;
             color: #fff;
             border-color: #10b981;
-            font-weight: 600;
+            font-weight: 600
         }
 
         .sentence-number {
@@ -398,18 +349,45 @@
             border-radius: 12px;
             font-size: 12px;
             font-weight: 600;
-            margin-right: 8px;
+            margin-right: 8px
         }
 
         .sentence-item.selected .sentence-number {
             background: #fff;
-            color: #10b981;
+            color: #10b981
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            border: 2px dashed #10b981;
+            border-radius: 8px;
+            background: #f0fdf4;
+            cursor: pointer;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 8px
+        }
+
+        input[type="file"]::-webkit-file-upload-button {
+            padding: 8px 16px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-right: 10px
+        }
+
+        input[type="file"]::-webkit-file-upload-button:hover {
+            background: #059669
         }
     </style>
 </head>
 
 <body>
-    <div class="panel" id="sentencePanel" style="display:none">
+    <!-- 문장 목록 패널 -->
+    <div class="panel" id="sentencePanel" style="display:none; margin-bottom: 20px;">
         <h2 style="color: #10b981;">📋 문장 목록</h2>
         <div class="hint" style="margin-bottom: 12px;">문장을 클릭하면 아래 입력창에 자동으로 입력됩니다.</div>
         <div class="sentence-list-container" id="sentenceList"></div>
@@ -442,661 +420,480 @@
         </div>
 
         <div class="status" id="status">상태: 준비됨</div>
+
         <div class="preview" id="preview" aria-live="polite"></div>
+
         <div class="small">💡 출력 형식: <ruby>日本語<rt>ひらがな｜한글</rt></ruby></div>
 
-        <div class="cumulative-section" id="cumulativeSection" style="display:none">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h3 style="margin: 0;">📝 누적 센텐스 결과</h3>
-                <div style="display: flex; gap: 8px;">
-                    <button id="fullSentenceToggle" style="padding: 8px 16px; font-size: 14px; background: #667eea;">👁️
-                        전체문장 숨기기</button>
-                    <button id="slashToggle" style="padding: 8px 16px; font-size: 14px; background: #10b981;">/ 슬래쉬
-                        추가</button>
-                </div>
-            </div>
 
-            <div class="full-sentence-box">
-                <div class="full-sentence-label">🎯 전체 문장</div>
-                <div class="full-sentence-jp" id="fullSentenceJp"></div>
-                <div class="full-sentence-kr" id="fullSentenceKr"></div>
-                <div class="full-sentence-trans" id="fullSentenceTrans"></div>
-            </div>
-
-            <div id="cumulativeList"></div>
+        <!-- 누적 센텐스 결과 섹션 -->
+    <div class="cumulative-section" id="cumulativeSection" style="display:none">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0;">📝 누적 센텐스 결과</h3>
+            <button id="slashToggle" onclick="toggleSlashes()" style="padding: 8px 16px; font-size: 14px; background: #10b981;">/ 슬래쉬 추가</button>
         </div>
+        <div id="cumulativeList"></div>
+    </div>
+       
 
         <div class="meaning-section" id="meaningSection" style="display:none">
             <h3>📖 단어 뜻 & 문장 번역</h3>
-            font-weight: 500;
+            <div id="meaningList"></div>
+        </div>
+    </div>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const japaneseEl = document.getElementById('japanese');
+        const preview = document.getElementById('preview');
+        const rateEl = document.getElementById('rate');
+        const rateLabel = document.getElementById('rateLabel');
+        const genBtn = document.getElementById('gen');
+        const playBtn = document.getElementById('play');
+        const pauseBtn = document.getElementById('pause');
+        const clearBtn = document.getElementById('clear');
+        const meaningSection = document.getElementById('meaningSection');
+        const meaningList = document.getElementById('meaningList');
+        const cumulativeSection = document.getElementById('cumulativeSection');
+        const cumulativeList = document.getElementById('cumulativeList');
+        const fileInput = document.getElementById('fileInput');
+        const sentenceList = document.getElementById('sentenceList');
+        const sentencePanel = document.getElementById('sentencePanel');
+
+        let wordSpans = [];
+        let currentUtter = null;
+        let apiResultData = [];
+        let sentences = [];
+        let selectedSentenceIndex = -1;
+
+        rateEl.addEventListener('input', () => {
+            rateLabel.textContent = parseFloat(rateEl.value).toFixed(2) + 'x';
+        });
+
+        function clearPreview() {
+            preview.innerHTML = '';
+            wordSpans = [];
+            if (currentUtter) speechSynthesis.cancel();
+            meaningSection.style.display = 'none';
+            meaningList.innerHTML = '';
+            cumulativeSection.style.display = 'none';
+            cumulativeList.innerHTML = '';
+            apiResultData = [];
+        }
+
+    
+        function buildCumulativeResults(arr) {
+    cumulativeList.innerHTML = '';
+    
+    // 누적 문자열 생성 (슬래쉬 포함)
+    let accumulatedJp = '';
+    let accumulatedKr = '';
+    let accumulatedTrans = '';
+    
+    arr.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'cumulative-item';
+        div.style.animationDelay = `${idx * 0.1}s`;
+        
+        const jpText = document.createElement('div');
+        jpText.className = 'cumulative-jp';
+        
+        // 이번에 추가되는 부분
+        const newJpPart = item.jp;
+        
+        // 누적 문자열에 추가
+        if (idx === 0) {
+            accumulatedJp = item.cumulativeJp;  // 첫 단어는 슬래쉬 없음
+            accumulatedKr = item.cumulativeKr;
+            accumulatedTrans = item.cumulativeTranslation;
+        } else {
+            const prevJp = arr[idx - 1].cumulativeJp;
+            const currentJp = item.cumulativeJp;
+            const newPart = currentJp.slice(prevJp.length);
+            accumulatedJp += (slashEnabled ? '/' : '') + newPart;
+            
+            const prevKr = arr[idx - 1].cumulativeKr;
+            const currentKr = item.cumulativeKr;
+            const spacingKr = currentKr.slice(prevKr.length).match(/^\s*/)[0];
+            const newKrOnly = currentKr.slice(prevKr.length).trimStart();
+            accumulatedKr += spacingKr + newKrOnly;
+            
+            const prevTrans = arr[idx - 1].cumulativeTranslation;
+            const currentTrans = item.cumulativeTranslation;
+            const spacingTrans = currentTrans.slice(prevTrans.length).match(/^\s*/)[0];
+            const newTransOnly = currentTrans.slice(prevTrans.length).trimStart();
+            accumulatedTrans += spacingTrans + newTransOnly;
+        }
+        
+        // 원문 표시 (하이라이트는 새 부분만)
+        let highlightedJp = '';
+        if (idx === 0) {
+            highlightedJp = `<span class="new-word" data-new="true">${newJpPart}</span>`;
+        } else {
+            const prevJp = arr[idx - 1].cumulativeJp;
+            const slash = slashEnabled ? '/' : '';
+            highlightedJp = `${prevJp}<span class="new-word" data-new="true">${slash}${newJpPart}</span>`;
+        }
+        
+        // 한글 발음 하이라이트
+        let highlightedKr = '';
+        if (idx === 0) {
+            highlightedKr = `<span class="new-word" data-new="true">${item.cumulativeKr}</span>`;
+        } else {
+            const prevKr = arr[idx - 1].cumulativeKr;
+            const currentKr = item.cumulativeKr;
+            const spacingKr = currentKr.slice(prevKr.length).match(/^\s*/)[0];
+            const newKrPart = currentKr.slice(prevKr.length).trimStart();
+            highlightedKr = `${prevKr}${spacingKr}<span class="new-word" data-new="true">${newKrPart}</span>`;
+        }
+        
+        // 한글 번역 하이라이트
+        let highlightedTrans = '';
+        if (idx === 0) {
+            highlightedTrans = `<span class="new-word" data-new="true">${item.cumulativeTranslation}</span>`;
+        } else {
+            const prevTrans = arr[idx - 1].cumulativeTranslation;
+            const currentTrans = item.cumulativeTranslation;
+            const spacingTrans = currentTrans.slice(prevTrans.length).match(/^\s*/)[0];
+            const newTransPart = currentTrans.slice(prevTrans.length).trimStart();
+            highlightedTrans = `${prevTrans}${spacingTrans}<span class="new-word" data-new="true">${newTransPart}</span>`;
+        }
+        
+        jpText.innerHTML = highlightedJp;
+        
+        const detail = document.createElement('div');
+        detail.className = 'cumulative-detail';
+        detail.innerHTML = `
+            <span>• <code>${accumulatedJp}</code> (${highlightedKr})</span>
+            <span class="cumulative-arrow">→</span>
+            <span class="cumulative-translation">${highlightedTrans}</span>
+        `;
+        
+        div.appendChild(jpText);
+        div.appendChild(detail);
+        cumulativeList.appendChild(div);
+    });
+    
+    cumulativeSection.style.display = 'block';
+}
+        
+
+// 슬래쉬 토글 기능
+let slashEnabled = false;
+
+function toggleSlashes() {
+    slashEnabled = !slashEnabled;
+    const slashBtn = document.getElementById('slashToggle');
+    
+    if (slashEnabled) {
+        slashBtn.textContent = '/ 슬래쉬 제거';
+        slashBtn.style.background = '#f59e0b';
+    } else {
+        slashBtn.textContent = '/ 슬래쉬 추가';
+        slashBtn.style.background = '#10b981';
+    }
+    
+    // 누적 결과 다시 생성
+    if (apiResultData.length > 0) {
+        buildCumulativeResults(apiResultData);
+    }
+}
+        
+        
+        function buildFromApiResult(arr) {
+            clearPreview();
+
+            if (!Array.isArray(arr) || arr.length === 0) {
+                statusEl.textContent = '상태: 변환 결과가 비어 있습니다.';
+                preview.innerHTML = '<div style="opacity:0.5;font-size:18px;">결과 없음</div>';
+                return;
             }
 
-            .full-sentence-trans {
-            font-size: 18px;
-            color: #fff;
-            font-weight: 600;
-            border-top: 2px solid rgba(255, 255, 255, 0.3);
-            padding-top: 12px;
-            margin-top: 8px;
-            }
+            apiResultData = arr.map(item => ({ ...item, meaningShown: false }));
 
-            .cumulative-item {
-            padding: 16px;
-            margin-bottom: 16px;
-            background: #fff;
-            border-radius: 8px;
-            border-left: 4px solid #ff9800;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
-            opacity: 0;
-            animation: fadeIn 0.4s forwards;
-            }
+            // 누적 센텐스 결과 표시
+            buildCumulativeResults(arr);
 
-            .cumulative-jp {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1a237e;
-            margin-bottom: 6px;
-            font-family: 'Noto Sans JP', sans-serif;
-            line-height: 1.5;
-            }
+            arr.forEach((seg, idx) => {
+                const sp = document.createElement('span');
+                sp.className = 'word';
+                sp.dataset.index = idx;
 
-            .cumulative-detail {
-            display: flex;
-            align-items: baseline;
-            margin-bottom: 4px;
-            font-size: 14px;
-            line-height: 1.6;
-            }
+                const rb = document.createElement('ruby');
+                rb.textContent = seg.jp;
 
-            .cumulative-detail code {
-            background: #f5f5f5;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'Noto Sans JP', monospace;
-            margin: 0 4px;
-            color: #d32f2f;
-            }
+                const rt = document.createElement('rt');
+                const read = seg.read || '';
+                const kr = seg.kr || '';
+                rt.textContent = read + (read && kr ? '｜' : '') + kr;
 
-            .cumulative-arrow {
-            margin: 0 8px;
-            color: #999;
-            }
+                if (rt.textContent) rb.appendChild(rt);
+                sp.appendChild(rb);
+                preview.appendChild(sp);
+                wordSpans.push(sp);
+            });
 
-            .cumulative-translation {
-            color: #0277bd;
-            font-weight: 500;
-            }
+            statusEl.textContent = '상태: 변환 완료! 재생 버튼을 눌러보세요.';
+            playBtn.disabled = false;
+            meaningSection.style.display = 'block';
+        }
 
-            .new-word {
-            background: linear-gradient(120deg, #ffd54f 0%, #ffb300 100%);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 700;
-            color: #1a237e;
-            box-shadow: 0 2px 4px rgba(255, 179, 0, 0.3);
-            animation: highlight 0.6s ease-in-out;
-            }
+        function revealNext(idx) {
+            for (let i = 0; i <= idx && i < apiResultData.length; i++) {
+                if (wordSpans[i]) wordSpans[i].classList.add('revealed');
 
-            @keyframes highlight {
-
-            0%,
-            100% {
-            transform: scale(1);
-            }
-
-            50% {
-            transform: scale(1.05);
-            }
-            }
-
-            .sentence-list-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 10px;
-            max-height: 400px;
-            overflow-y: auto;
-            padding: 4px;
-            }
-
-            .sentence-item {
-            padding: 12px 16px;
-            background: #fff;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 2px solid #e0e0e0;
-            font-family: 'Noto Sans JP', sans-serif;
-            font-size: 15px;
-            color: #333;
-            line-height: 1.5;
-            }
-
-            .sentence-item:hover {
-            background: #f0f9ff;
-            border-color: #10b981;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.2);
-            }
-
-            .sentence-item.selected {
-            background: #10b981;
-            color: #fff;
-            border-color: #10b981;
-            font-weight: 600;
-            }
-
-            .sentence-number {
-            display: inline-block;
-            background: #10b981;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-right: 8px;
-            }
-
-            .sentence-item.selected .sentence-number {
-            background: #fff;
-            color: #10b981;
-            }
-            </style>
-            </head>
-
-            <body>
-                <div class="panel" id="sentencePanel" style="display:none">
-                    <h2 style="color: #10b981;">📋 문장 목록</h2>
-                    <div class="hint" style="margin-bottom: 12px;">문장을 클릭하면 아래 입력창에 자동으로 입력됩니다.</div>
-                    <div class="sentence-list-container" id="sentenceList"></div>
-                </div>
-
-                <div class="panel">
-                    <h2>🇯🇵 일본어 자동 독음 + TTS 재생기</h2>
-                    <div class="hint">일본어 문장을 입력하고 "자동독음 생성"을 누르면 GPT가 형태소별로 히라가나 읽기와 한국어 발음을 생성합니다.</div>
-
-                    <label>📁 일본어 문장 파일 업로드 (선택사항)</label>
-                    <input type="file" id="fileInput" accept=".txt,.csv">
-                    <div class="hint" style="margin-top: 8px;">TXT 또는 CSV 파일을 업로드하면 위에 문장 목록이 표시됩니다.</div>
-
-                    <label>일본어 문장 입력</label>
-                    <textarea id="japanese" rows="3" placeholder="예: 今日の晩ご飯は何を食べようか">今日の晩ご飯は何を食べようか</textarea>
-
-                    <div class="controls">
-                        <button id="gen">자동독음 생성</button>
-                        <button id="play">▶ 재생</button>
-                        <button id="pause" class="btn-secondary">⏸ 일시정지</button>
-                        <button id="clear" class="btn-secondary">🔄 초기화</button>
-                    </div>
-
-                    <div class="controls">
-                        <div class="speed-control">
-                            <label style="margin:0">재생 속도:</label>
-                            <input id="rate" type="range" min="0.6" max="2.0" step="0.05" value="1.0" />
-                            <span id="rateLabel">1.00x</span>
-                        </div>
-                    </div>
-
-                    <div class="status" id="status">상태: 준비됨</div>
-                    <div class="preview" id="preview" aria-live="polite"></div>
-                    <div class="small">💡 출력 형식: <ruby>日本語<rt>ひらがな｜한글</rt></ruby></div>
-
-                    <div class="cumulative-section" id="cumulativeSection" style="display:none">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                            <h3 style="margin: 0;">📝 누적 센텐스 결과</h3>
-                            <div style="display: flex; gap: 8px;">
-                                <button id="fullSentenceToggle"
-                                    style="padding: 8px 16px; font-size: 14px; background: #667eea;">👁️
-                                    전체문장 숨기기</button>
-                                <button id="slashToggle"
-                                    style="padding: 8px 16px; font-size: 14px; background: #10b981;">/ 슬래쉬
-                                    추가</button>
-                            </div>
-                        </div>
-
-                        <div class="full-sentence-box">
-                            <div class="full-sentence-label">🎯 전체 문장</div>
-                            <div class="full-sentence-jp" id="fullSentenceJp"></div>
-                            <div class="full-sentence-kr" id="fullSentenceKr"></div>
-                            <div class="full-sentence-trans" id="fullSentenceTrans"></div>
-                        </div>
-
-                        <div id="cumulativeList"></div>
-                    </div>
-
-                    <div class="meaning-section" id="meaningSection" style="display:none">
-                        <h3>📖 단어 뜻 & 문장 번역</h3>
-                        <div id="meaningList"></div>
-                    </div>
-                </div>
-
-                <script>
-                    const $ = id => document.getElementById(id);
-                    const statusEl = $('status'), japaneseEl = $('japanese'), preview = $('preview');
-                    const rateEl = $('rate'), rateLabel = $('rateLabel');
-                    const genBtn = $('gen'), playBtn = $('play'), pauseBtn = $('pause'), clearBtn = $('clear');
-                    const meaningSection = $('meaningSection'), meaningList = $('meaningList');
-                    const cumulativeSection = $('cumulativeSection'), cumulativeList = $('cumulativeList');
-                    const fileInput = $('fileInput'), sentenceList = $('sentenceList'), sentencePanel = $('sentencePanel');
-                    const fullSentenceJp = $('fullSentenceJp'), fullSentenceKr = $('fullSentenceKr'), fullSentenceTrans = $('fullSentenceTrans');
-                    const slashToggle = $('slashToggle'), fullSentenceToggle = $('fullSentenceToggle');
-                    const fullSentenceBox = document.querySelector('.full-sentence-box');
-
-                    // Debug UI
-                    const debugLog = document.createElement('div');
-                    debugLog.style.cssText = 'margin-top: 20px; padding: 10px; background: #eee; border: 1px solid #ccc; font-size: 12px; height: 100px; overflow-y: scroll; font-family: monospace; display: none;';
-                    debugLog.id = 'debugLog';
-                    document.querySelector('.panel').appendChild(debugLog);
-
-                    function log(msg) {
-                        console.log(msg);
-                        const line = document.createElement('div');
-                        line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-                        debugLog.appendChild(line);
-                        debugLog.scrollTop = debugLog.scrollHeight;
+                if (!apiResultData[i].meaningShown) {
+                    if (apiResultData[i].meaning) {
+                        addMeaning(apiResultData[i].jp, apiResultData[i].meaning, 'word');
                     }
-
-                    // Show debug log if 'debug' param is in URL
-                    if (new URLSearchParams(window.location.search).has('debug')) {
-                        debugLog.style.display = 'block';
+                    if (apiResultData[i].sentenceTranslation) {
+                        addMeaning('문장 번역', apiResultData[i].sentenceTranslation, 'sentence');
                     }
+                    apiResultData[i].meaningShown = true;
+                }
+            }
+        }
 
-                    let wordSpans = [], currentUtter = null, apiResultData = [], sentences = [], selectedSentenceIndex = -1;
-                    let voices = [];
+        function revealAll() {
+            revealNext(apiResultData.length - 1);
+        }
 
-                    function loadVoices() {
-                        voices = speechSynthesis.getVoices();
-                        log(`Voices loaded: ${voices.length}`);
-                    }
+        function addMeaning(word, meaning, type) {
+            const div = document.createElement('div');
+            div.className = `meaning-item ${type === 'word' ? 'word-meaning' : 'sentence-meaning'}`;
 
-                    loadVoices();
-                    if (speechSynthesis.onvoiceschanged !== undefined) {
-                        speechSynthesis.onvoiceschanged = loadVoices;
-                    }
+            if (type === 'word') {
+                div.innerHTML = `<span class="meaning-word">${word}</span><span class="meaning-text">${meaning}</span>`;
+            } else {
+                div.innerHTML = `<span class="meaning-word">💬 ${word}:</span><span class="meaning-text"> ${meaning}</span>`;
+            }
 
-                    // Force load voices on iOS
-                    speechSynthesis.getVoices();
+            meaningList.appendChild(div);
+            meaningList.scrollTop = meaningList.scrollHeight;
+        }
 
-                    let slashEnabled = false, fullSentenceVisible = true;
+        function playSequence() {
+            const text = japaneseEl.value.trim();
+            if (!text) return;
 
-                    rateEl.addEventListener('input', () => rateLabel.textContent = parseFloat(rateEl.value).toFixed(2) + 'x');
+            if (wordSpans.length === 0) {
+                statusEl.textContent = '먼저 "자동독음 생성"을 눌러주세요.';
+                return;
+            }
 
-                    slashToggle.addEventListener('click', () => {
-                        slashEnabled = !slashEnabled;
-                        slashToggle.textContent = slashEnabled ? '/ 슬래쉬 제거' : '/ 슬래쉬 추가';
-                        slashToggle.style.background = slashEnabled ? '#f59e0b' : '#10b981';
-                        if (apiResultData.length > 0) buildCumulativeResults(apiResultData);
-                    });
+            if (currentUtter) speechSynthesis.cancel();
 
-                    fullSentenceToggle.addEventListener('click', () => {
-                        fullSentenceVisible = !fullSentenceVisible;
-                        fullSentenceBox.style.display = fullSentenceVisible ? 'block' : 'none';
-                        fullSentenceToggle.textContent = fullSentenceVisible ? '👁️ 전체문장 숨기기' : '👁️ 전체문장 보이기';
-                        fullSentenceToggle.style.background = fullSentenceVisible ? '#667eea' : '#999';
-                    });
+            apiResultData.forEach(d => d.meaningShown = false);
+            meaningList.innerHTML = '';
+            wordSpans.forEach(s => s.classList.remove('revealed'));
 
-                    function clearPreview() {
-                        preview.innerHTML = '';
-                        wordSpans = [];
-                        if (currentUtter) speechSynthesis.cancel();
-                        meaningSection.style.display = 'none';
-                        meaningList.innerHTML = '';
-                        cumulativeSection.style.display = 'none';
-                        cumulativeList.innerHTML = '';
-                        apiResultData = [];
-                    }
+            let currentIndex = 0;
+            apiResultData.forEach(item => {
+                const foundIndex = text.indexOf(item.jp, currentIndex);
+                if (foundIndex !== -1) {
+                    item.startIndex = foundIndex;
+                    currentIndex = foundIndex + item.jp.length;
+                } else {
+                    item.startIndex = currentIndex;
+                }
+            });
 
-                    function buildCumulativeResults(arr) {
-                        cumulativeList.innerHTML = '';
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'ja-JP';
+            u.rate = parseFloat(rateEl.value);
+            currentUtter = u;
 
-                        // 전체 문장 박스 (항상 슬래쉬 있음)
-                        if (arr.length > 0) {
-                            const lastItem = arr[arr.length - 1];
-                            fullSentenceJp.textContent = arr.map(item => item.jp).join('/');
-                            const krParts = arr.map(item => item.kr || '').filter(kr => kr);
-                            fullSentenceKr.textContent = krParts.join(' / ');
-                            fullSentenceTrans.textContent = lastItem.cumulativeTranslation;
-                        }
+            u.onstart = () => {
+                statusEl.textContent = '상태: TTS 재생 중...';
+            };
 
-                        arr.forEach((item, idx) => {
-                            const div = document.createElement('div');
-                            div.className = 'cumulative-item';
-                            div.style.animationDelay = `${idx * 0.1}s`;
-
-                            const jpText = document.createElement('div');
-                            jpText.className = 'cumulative-jp';
-
-                            // jpText: 슬래쉬 토글 적용 및 누적
-                            // 이전까지의 텍스트 생성
-                            const prevItems = arr.slice(0, idx);
-                            const separator = slashEnabled ? '/' : '';
-                            const prevText = prevItems.map(it => it.jp).join(separator);
-
-                            // 현재 아이템 앞에 구분자 추가 여부
-                            const currentSeparator = (idx > 0 && slashEnabled) ? '/' : '';
-
-                            jpText.innerHTML = `${prevText}<span class="new-word">${currentSeparator}${item.jp}</span>`;
-
-                            const detail = document.createElement('div');
-                            detail.className = 'cumulative-detail';
-
-                            // code 태그: 슬래쉬 없음 (항상 원문 누적)
-                            // API에서 제공하는 cumulativeJp 사용 (보통 슬래쉬 없음)
-                            // 만약 API가 없다면 직접 생성: arr.slice(0, idx + 1).map(it => it.jp).join('')
-                            const accumulatedJp = item.cumulativeJp;
-
-                            const prevKr = idx === 0 ? '' : arr[idx - 1].cumulativeKr;
-                            const currentKr = item.cumulativeKr;
-                            const newKrPart = currentKr.slice(prevKr.length).trim();
-                            const highlightedKr = idx === 0
-                                ? `<span class="new-word">${currentKr}</span>`
-                                : `${prevKr} <span class="new-word">${newKrPart}</span>`;
-
-                            const prevTrans = idx === 0 ? '' : arr[idx - 1].cumulativeTranslation;
-                            const currentTrans = item.cumulativeTranslation;
-                            const newTransPart = currentTrans.slice(prevTrans.length).trim();
-                            const highlightedTrans = idx === 0
-                                ? `<span class="new-word">${currentTrans}</span>`
-                                : `${prevTrans} <span class="new-word">${newTransPart}</span>`;
-
-                            detail.innerHTML = `
-                    <span>• <code>${accumulatedJp}</code> (${highlightedKr})</span>
-                    <span class="cumulative-arrow">→</span>
-                    <span class="cumulative-translation">${highlightedTrans}</span>
-                `;
-
-                            div.appendChild(jpText);
-                            div.appendChild(detail);
-                            cumulativeList.appendChild(div);
-                        });
-
-                        cumulativeSection.style.display = 'block';
-                    }
-
-                    function buildFromApiResult(arr) {
-                        clearPreview();
-                        if (!Array.isArray(arr) || arr.length === 0) {
-                            statusEl.textContent = '상태: 변환 결과가 비어 있습니다.';
-                            preview.innerHTML = '<div style="opacity:0.5;font-size:18px;">결과 없음</div>';
-                            return;
-                        }
-
-                        apiResultData = arr.map(item => ({ ...item, meaningShown: false }));
-                        buildCumulativeResults(arr);
-
-                        arr.forEach((seg, idx) => {
-                            const sp = document.createElement('span');
-                            sp.className = 'word';
-                            sp.dataset.index = idx;
-
-                            const rb = document.createElement('ruby');
-                            rb.textContent = seg.jp;
-
-                            const rt = document.createElement('rt');
-                            const read = seg.read || '';
-                            const kr = seg.kr || '';
-                            rt.textContent = read + (read && kr ? '｜' : '') + kr;
-
-                            if (rt.textContent) rb.appendChild(rt);
-                            sp.appendChild(rb);
-                            preview.appendChild(sp);
-                            wordSpans.push(sp);
-                        });
-
-                        meaningSection.style.display = 'block';
-                        cumulativeSection.style.display = 'block';
-                    }
-
-                    fileInput.addEventListener('change', async (event) => {
-                        const file = event.target.files[0];
-                        if (!file) return;
-
-                        statusEl.textContent = '상태: 파일 읽는 중...';
-                        sentenceList.innerHTML = '';
-                        sentencePanel.style.display = 'none';
-                        sentences = [];
-                        selectedSentenceIndex = -1;
-                        japaneseEl.value = '';
-                        clearPreview();
-
-                        try {
-                            const text = await file.text();
-                            if (file.name.endsWith('.csv')) {
-                                sentences = text.split('\n').map(line => line.split(',')[0].trim()).filter(line => line.length > 0);
-                            } else {
-                                sentences = text.split('\n').map(line => line.trim()).filter(line => line.length > 0)
-                                    .filter(line => !/^\d+$/.test(line))
-                                    .filter(line => !/\d{2}:\d{2}:\d{2}/.test(line))
-                                    .filter(line => /[ぁ-んァ-ン一-龯]/.test(line));
-                            }
-
-                            if (sentences.length === 0) {
-                                alert('파일에서 문장을 찾을 수 없습니다.');
-                                return;
-                            }
-
-                            displaySentenceList();
-                            statusEl.textContent = `상태: ${sentences.length}개의 문장을 불러왔습니다.`;
-                        } catch (error) {
-                            console.error('파일 읽기 오류:', error);
-                            alert('파일을 읽는 중 오류가 발생했습니다.');
-                        }
-                    });
-
-                    function displaySentenceList() {
-                        sentenceList.innerHTML = '';
-                        sentences.forEach((sentence, index) => {
-                            const div = document.createElement('div');
-                            div.className = 'sentence-item';
-                            div.innerHTML = `<span class="sentence-number">${index + 1}</span>${sentence}`;
-                            div.dataset.index = index;
-                            div.addEventListener('click', () => selectSentence(index));
-                            sentenceList.appendChild(div);
-                        });
-                        sentencePanel.style.display = 'block';
-                        sentencePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-
-                    function selectSentence(index) {
-                        selectedSentenceIndex = index;
-                        japaneseEl.value = sentences[index];
-                        document.querySelectorAll('.sentence-item').forEach((item, i) => item.classList.toggle('selected', i === index));
-                        clearPreview();
-                        statusEl.textContent = `상태: 문장 #${index + 1} 선택됨`;
-                        japaneseEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        japaneseEl.focus();
-                    }
-
-                    async function checkHealth() {
-                        try {
-                            const r = await fetch('/api/health');
-                            statusEl.textContent = r.ok ? '상태: 서버 연결됨 ✓' : '상태: 서버 응답 없음';
-                        } catch (e) {
-                            statusEl.textContent = '상태: 서버 연결 실패';
-                            statusEl.className = 'status danger';
-                        }
-                    }
-
-                    checkHealth();
-                    playBtn.disabled = true;
-
-                    // --- Voice Loading ---
-                    function setVoice() {
-                        // Reload voices just in case
-                        if (voices.length === 0) voices = speechSynthesis.getVoices();
-
-                        const jpVoices = voices.filter(v => v.lang.startsWith('ja'));
-                        log(`Available JP voices: ${jpVoices.map(v => v.name).join(', ')}`);
-
-                        // Prefer Google or Microsoft voices if available for better quality
-                        const bestVoice = jpVoices.find(v => v.name.includes('Google') || v.name.includes('Microsoft')) || jpVoices[0];
-                        return bestVoice || null;
-                    }
-
-                    // --- Generation ---
-                    genBtn.addEventListener('click', async () => {
-                        const text = japaneseEl.value.trim();
-                        if (!text) return alert('일본어 문장을 입력하세요.');
-
-                        statusEl.textContent = '상태: 변환 중...';
-                        genBtn.disabled = true;
-                        playBtn.disabled = true;
-                        clearPreview();
-
-                        try {
-                            const res = await fetch('/api/furigana', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ text })
-                            });
-
-                            if (!res.ok) throw new Error('API Error');
-                            const data = await res.json();
-
-                            buildFromApiResult(data);
-                            statusEl.textContent = '상태: 변환 완료. 재생 버튼을 누르세요.';
-                            playBtn.disabled = false;
-
-                            // Mobile: Do NOT auto-play. User must click 'Play'.
-                        } catch (err) {
-                            console.error(err);
-                            statusEl.textContent = '상태: 오류 발생';
-                            alert('변환 중 오류가 발생했습니다.');
-                        } finally {
-                            genBtn.disabled = false;
-                        }
-                    });
-
-                    // --- Playback (Mobile Compatible) ---
-                    playBtn.addEventListener('click', () => {
-                        log('Play button clicked');
-
-                        // iOS Silent Mode Warning
-                        if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                            log('iOS detected. Ensure silent mode is OFF.');
-                            // We can't detect silent switch, but we can warn
-                        }
-
-                        if (apiResultData.length === 0) {
-                            log('No data to play');
-                            return;
-                        }
-
-                        // Cancel any ongoing speech
-                        speechSynthesis.cancel();
-
-                        // Construct the full text to speak
-                        // We use the 'read' field (hiragana) for better TTS pronunciation
-                        const fullText = apiResultData.map(d => d.read).join(' ');
-                        log(`Speaking: ${fullText}`);
-
-                        const utter = new SpeechSynthesisUtterance(fullText);
-                        utter.rate = parseFloat(rateEl.value);
-
-                        const voice = setVoice();
-                        if (voice) {
-                            utter.voice = voice;
-                            log(`Using voice: ${voice.name}`);
+            u.onboundary = (event) => {
+                if (event.name === 'word' || event.name === 'sentence') {
+                    const charIndex = event.charIndex;
+                    let activeIndex = -1;
+                    for (let i = 0; i < apiResultData.length; i++) {
+                        if (apiResultData[i].startIndex <= charIndex) {
+                            activeIndex = i;
                         } else {
-                            log('No specific JP voice found, relying on lang="ja-JP"');
+                            break;
                         }
-                        utter.lang = 'ja-JP';
-
-                        // --- Word Highlighting Strategy ---
-                        // Since we are playing one long string, we need to map character indices back to our word list.
-                        // This is an approximation. For perfect sync, we'd need word-level timestamps which standard Web Speech API doesn't provide easily.
-                        // However, 'onboundary' gives us the charIndex.
-
-                        // Let's build a map of start indices for each word in the fullText string.
-                        let charIndexMap = [];
-                        let runningIndex = 0;
-                        apiResultData.forEach((item, idx) => {
-                            charIndexMap.push({
-                                start: runningIndex,
-                                end: runningIndex + item.read.length,
-                                index: idx
-                            });
-                            runningIndex += item.read.length + 1; // +1 for the space we added
-                        });
-
-                        utter.onboundary = (event) => {
-                            if (event.name !== 'word') return;
-
-                            const charIdx = event.charIndex;
-                            // Find which word this charIdx belongs to
-                            const match = charIndexMap.find(m => charIdx >= m.start && charIdx < m.end);
-
-                            if (match) {
-                                // Highlight the word
-                                wordSpans.forEach(s => s.classList.remove('revealed'));
-                                const targetSpan = document.querySelector(`.word[data-index="${match.index}"]`);
-                                if (targetSpan) {
-                                    targetSpan.classList.add('revealed');
-                                    // Show meaning if needed
-                                    showMeaning(match.index);
-                                }
-                            }
-                        };
-
-                        utter.onend = () => {
-                            log('Playback finished');
-                            statusEl.textContent = '상태: 재생 완료';
-                            currentUtter = null;
-                            // Keep the last word highlighted or clear? Let's keep it.
-                        };
-
-                        utter.onerror = (e) => {
-                            console.error('TTS Error:', e);
-                            log(`TTS Error: ${e.error}`);
-                            statusEl.textContent = '상태: 재생 오류';
-                        };
-
-                        currentUtter = utter;
-                        statusEl.textContent = '상태: 재생 중...';
-
-                        // IMPORTANT: This call is inside a user-initiated click handler.
-                        // This allows it to work on iOS/Android.
-                        speechSynthesis.speak(utter);
-                    });
-
-                    pauseBtn.addEventListener('click', () => {
-                        if (speechSynthesis.speaking) {
-                            if (speechSynthesis.paused) {
-                                speechSynthesis.resume();
-                                pauseBtn.textContent = '⏸ 일시정지';
-                            } else {
-                                speechSynthesis.pause();
-                                pauseBtn.textContent = '▶ 재개';
-                            }
-                        }
-                    });
-
-                    clearBtn.addEventListener('click', () => {
-                        japaneseEl.value = '';
-                        clearPreview();
-                        statusEl.textContent = '상태: 초기화됨';
-                        playBtn.disabled = true;
-                    });
-
-                    function showMeaning(index) {
-                        // Simple implementation to scroll/highlight meaning if we had a list
-                        // For now just ensure the meaning section is visible
-                        meaningSection.style.display = 'block';
-
-                        // Highlight the current word in the meaning list if we built it
-                        // (We haven't built the meaning list fully in this snippet, but let's add basic support)
-                        const item = apiResultData[index];
-                        if (!item || item.meaningShown) return;
-
-                        const div = document.createElement('div');
-                        div.className = 'meaning-item word-meaning';
-                        div.innerHTML = `<span class="meaning-word">${item.jp}</span><span class="meaning-text">${item.meaning}</span>`;
-                        meaningList.appendChild(div);
-                        meaningList.scrollTop = meaningList.scrollHeight;
-
-                        item.meaningShown = true;
                     }
-                </script>
-            </body>
+
+                    if (activeIndex !== -1) {
+                        revealNext(activeIndex);
+                    }
+                }
+            };
+
+            u.onend = () => {
+                revealAll();
+                statusEl.textContent = '상태: 재생 완료!';
+            };
+
+            speechSynthesis.speak(u);
+        }
+
+        async function callApi(text) {
+            try {
+                const resp = await fetch('/api/furigana', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+
+                if (!resp.ok) {
+                    const error = await resp.json();
+                    throw new Error(error.error || `${resp.status} ${resp.statusText}`);
+                }
+
+                const data = await resp.json();
+                return data;
+            } catch (e) {
+                throw e;
+            }
+        }
+
+        genBtn.addEventListener('click', async () => {
+            const text = japaneseEl.value.trim();
+            if (!text) {
+                statusEl.textContent = '상태: 일본어 문장을 입력하세요.';
+                return;
+            }
+
+            statusEl.textContent = '상태: GPT로 변환 중... ⏳';
+            genBtn.disabled = true;
+            playBtn.disabled = true;
+
+            try {
+                const arr = await callApi(text);
+                buildFromApiResult(arr);
+            } catch (err) {
+                console.error(err);
+                statusEl.textContent = '상태: 변환 실패 ❌';
+                statusEl.className = 'status danger';
+                alert('변환 API 호출 실패:\n' + (err.message || err));
+            } finally {
+                genBtn.disabled = false;
+                statusEl.className = 'status';
+            }
+        });
+
+        playBtn.addEventListener('click', () => playSequence());
+
+        pauseBtn.addEventListener('click', () => {
+            if (speechSynthesis.speaking) speechSynthesis.pause();
+        });
+
+        clearBtn.addEventListener('click', () => {
+            japaneseEl.value = '';
+            clearPreview();
+            statusEl.textContent = '상태: 초기화됨';
+            playBtn.disabled = true;
+        });
+
+        // 파일 업로드 처리
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+                
+                // 파일 확장자에 따라 처리
+                if (file.name.endsWith('.csv')) {
+                    // CSV 파싱 (간단한 방식)
+                    sentences = text.split('\n')
+                        .map(line => line.split(',')[0].trim())
+                        .filter(line => line.length > 0);
+                } else {
+                    // TXT 파일 - 한 줄에 한 문장
+                    sentences = text.split('\n')
+                    .map(line => line.trim())
+                    .filter(line => line.length > 0)
+                    .filter(line => !/^\d+$/.test(line))                    // 번호 제거
+                    .filter(line => !/\d{2}:\d{2}:\d{2}/.test(line))        // 타임코드 제거
+                    .filter(line => /[ぁ-んァ-ン一-龯]/.test(line));        // 일본어 포함된 줄만
+
+                
+                }
+
+                if (sentences.length === 0) {
+                    alert('파일에서 문장을 찾을 수 없습니다.');
+                    return;
+                }
+
+                displaySentenceList();
+                statusEl.textContent = `상태: ${sentences.length}개의 문장을 불러왔습니다.`;
+                
+            } catch (error) {
+                console.error('파일 읽기 오류:', error);
+                alert('파일을 읽는 중 오류가 발생했습니다.');
+            }
+        });
+
+        // 문장 목록 표시
+        function displaySentenceList() {
+            sentenceList.innerHTML = '';
+            
+            sentences.forEach((sentence, index) => {
+                const div = document.createElement('div');
+                div.className = 'sentence-item';
+                div.innerHTML = `<span class="sentence-number">${index + 1}</span>${sentence}`;
+                div.dataset.index = index;
+                
+                div.addEventListener('click', () => {
+                    selectSentence(index);
+                });
+                
+                sentenceList.appendChild(div);
+            });
+            
+            sentencePanel.style.display = 'block';
+            
+            // 패널이 보이도록 스크롤
+            sentencePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // 문장 선택
+        function selectSentence(index) {
+            selectedSentenceIndex = index;
+            japaneseEl.value = sentences[index];
+            
+            // 선택된 항목 하이라이트
+            document.querySelectorAll('.sentence-item').forEach((item, i) => {
+                if (i === index) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+            
+            // 이전 결과 초기화
+            clearPreview();
+            statusEl.textContent = `상태: 문장 #${index + 1} 선택됨`;
+            
+            // 입력창으로 스크롤
+            japaneseEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            japaneseEl.focus();
+        }
+
+        async function checkHealth() {
+            try {
+                const r = await fetch('/api/health');
+                if (r.ok) {
+                    statusEl.textContent = '상태: 서버 연결됨 ✓';
+                } else {
+                    statusEl.textContent = '상태: 서버 응답 없음';
+                }
+            } catch (e) {
+                statusEl.textContent = '상태: 서버 연결 실패';
+                statusEl.className = 'status danger';
+            }
+        }
+
+        checkHealth();
+        playBtn.disabled = true;
+    </script>
+</body>
 
 </html>
