@@ -476,6 +476,7 @@
             apiResultData = [];
         }
 
+    
         function buildCumulativeResults(arr) {
     cumulativeList.innerHTML = '';
     
@@ -494,9 +495,9 @@
         
         if (idx === 0) {
             // 첫 문장은 전체를 새 단어로 표시
-            highlightedJp = `<span class="new-word">${item.jp}</span>`;
-            highlightedKr = `<span class="new-word">${item.cumulativeKr}</span>`;
-            highlightedTranslation = `<span class="new-word">${item.cumulativeTranslation}</span>`;
+            highlightedJp = `<span class="new-word" data-new="true">${item.jp}</span>`;
+            highlightedKr = `<span class="new-word" data-new="true">${item.cumulativeKr}</span>`;
+            highlightedTranslation = `<span class="new-word" data-new="true">${item.cumulativeTranslation}</span>`;
         } else {
             // 이전 문장과 비교하여 새로운 부분만 하이라이트
             const prevJp = arr[idx - 1].cumulativeJp;
@@ -508,7 +509,7 @@
             
             if (currentJp.startsWith(prevJp)) {
                 const newJpPart = currentJp.slice(prevJp.length);
-                highlightedJp = `${prevJp}<span class="new-word">${newJpPart}</span>`;
+                highlightedJp = `${prevJp}<span class="new-word" data-new="true">${newJpPart}</span>`;
             } else {
                 highlightedJp = currentJp;
             }
@@ -516,7 +517,7 @@
             if (currentKr.startsWith(prevKr)) {
                 const newKrPart = currentKr.slice(prevKr.length).trimStart();
                 const spacing = currentKr.slice(prevKr.length).match(/^\s*/)[0];
-                highlightedKr = `${prevKr}${spacing}<span class="new-word">${newKrPart}</span>`;
+                highlightedKr = `${prevKr}${spacing}<span class="new-word" data-new="true">${newKrPart}</span>`;
             } else {
                 highlightedKr = currentKr;
             }
@@ -524,7 +525,7 @@
             if (currentTranslation.startsWith(prevTranslation)) {
                 const newTransPart = currentTranslation.slice(prevTranslation.length).trimStart();
                 const spacing = currentTranslation.slice(prevTranslation.length).match(/^\s*/)[0];
-                highlightedTranslation = `${prevTranslation}${spacing}<span class="new-word">${newTransPart}</span>`;
+                highlightedTranslation = `${prevTranslation}${spacing}<span class="new-word" data-new="true">${newTransPart}</span>`;
             } else {
                 highlightedTranslation = currentTranslation;
             }
@@ -547,8 +548,41 @@
     
     cumulativeSection.style.display = 'block';
 }
-        
 
+// 슬래쉬 토글 기능
+let slashEnabled = false;
+
+function toggleSlashes() {
+    slashEnabled = !slashEnabled;
+    const slashBtn = document.getElementById('slashToggle');
+    
+    if (slashEnabled) {
+        slashBtn.textContent = '/ 슬래쉬 제거';
+        slashBtn.style.background = '#f59e0b';
+    } else {
+        slashBtn.textContent = '/ 슬래쉬 추가';
+        slashBtn.style.background = '#10b981';
+    }
+    
+    // 모든 새 단어에 슬래쉬 추가/제거
+    const newWords = document.querySelectorAll('.new-word[data-new="true"]');
+    newWords.forEach(word => {
+        const text = word.textContent;
+        
+        if (slashEnabled) {
+            // 슬래쉬가 없으면 추가
+            if (!text.startsWith('/')) {
+                word.textContent = '/' + text;
+            }
+        } else {
+            // 슬래쉬가 있으면 제거
+            if (text.startsWith('/')) {
+                word.textContent = text.slice(1);
+            }
+        }
+    });
+}
+        
         function buildFromApiResult(arr) {
             clearPreview();
 
