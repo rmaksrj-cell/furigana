@@ -487,6 +487,7 @@
     
     // 누적 문자열 생성 (슬래쉬 포함)
     let accumulatedJp = '';
+    let accumulatedKr = '';
     let accumulatedTrans = '';
     
     arr.forEach((item, idx) => {
@@ -502,28 +503,60 @@
         
         // 누적 문자열에 추가
         if (idx === 0) {
-            accumulatedJp = (slashEnabled ? '/' : '') + item.cumulativeJp;
-            accumulatedTrans = item.cumulativeTranslation;  // 슬래쉬 제거
+            accumulatedJp = item.cumulativeJp;  // 첫 단어는 슬래쉬 없음
+            accumulatedKr = item.cumulativeKr;
+            accumulatedTrans = item.cumulativeTranslation;
         } else {
             const prevJp = arr[idx - 1].cumulativeJp;
             const currentJp = item.cumulativeJp;
             const newPart = currentJp.slice(prevJp.length);
             accumulatedJp += (slashEnabled ? '/' : '') + newPart;
             
+            const prevKr = arr[idx - 1].cumulativeKr;
+            const currentKr = item.cumulativeKr;
+            const spacingKr = currentKr.slice(prevKr.length).match(/^\s*/)[0];
+            const newKrOnly = currentKr.slice(prevKr.length).trimStart();
+            accumulatedKr += spacingKr + newKrOnly;
+            
             const prevTrans = arr[idx - 1].cumulativeTranslation;
             const currentTrans = item.cumulativeTranslation;
-            const spacing = currentTrans.slice(prevTrans.length).match(/^\s*/)[0];
+            const spacingTrans = currentTrans.slice(prevTrans.length).match(/^\s*/)[0];
             const newTransOnly = currentTrans.slice(prevTrans.length).trimStart();
-            accumulatedTrans += spacing + newTransOnly;  // 슬래쉬 제거
+            accumulatedTrans += spacingTrans + newTransOnly;
         }
         
         // 원문 표시 (하이라이트는 새 부분만)
         let highlightedJp = '';
         if (idx === 0) {
-            highlightedJp = `<span class="new-word" data-new="true">${(slashEnabled ? '/' : '') + newJpPart}</span>`;
+            highlightedJp = `<span class="new-word" data-new="true">${newJpPart}</span>`;
         } else {
             const prevJp = arr[idx - 1].cumulativeJp;
-            highlightedJp = `${prevJp}<span class="new-word" data-new="true">${(slashEnabled ? '/' : '') + newJpPart}</span>`;
+            const slash = slashEnabled ? '/' : '';
+            highlightedJp = `${prevJp}<span class="new-word" data-new="true">${slash}${newJpPart}</span>`;
+        }
+        
+        // 한글 발음 하이라이트
+        let highlightedKr = '';
+        if (idx === 0) {
+            highlightedKr = `<span class="new-word" data-new="true">${item.cumulativeKr}</span>`;
+        } else {
+            const prevKr = arr[idx - 1].cumulativeKr;
+            const currentKr = item.cumulativeKr;
+            const spacingKr = currentKr.slice(prevKr.length).match(/^\s*/)[0];
+            const newKrPart = currentKr.slice(prevKr.length).trimStart();
+            highlightedKr = `${prevKr}${spacingKr}<span class="new-word" data-new="true">${newKrPart}</span>`;
+        }
+        
+        // 한글 번역 하이라이트
+        let highlightedTrans = '';
+        if (idx === 0) {
+            highlightedTrans = `<span class="new-word" data-new="true">${item.cumulativeTranslation}</span>`;
+        } else {
+            const prevTrans = arr[idx - 1].cumulativeTranslation;
+            const currentTrans = item.cumulativeTranslation;
+            const spacingTrans = currentTrans.slice(prevTrans.length).match(/^\s*/)[0];
+            const newTransPart = currentTrans.slice(prevTrans.length).trimStart();
+            highlightedTrans = `${prevTrans}${spacingTrans}<span class="new-word" data-new="true">${newTransPart}</span>`;
         }
         
         jpText.innerHTML = highlightedJp;
@@ -531,9 +564,9 @@
         const detail = document.createElement('div');
         detail.className = 'cumulative-detail';
         detail.innerHTML = `
-            <span>• <code>${accumulatedJp}</code> (${item.cumulativeKr})</span>
+            <span>• <code>${accumulatedJp}</code> (${highlightedKr})</span>
             <span class="cumulative-arrow">→</span>
-            <span class="cumulative-translation">${accumulatedTrans}</span>
+            <span class="cumulative-translation">${highlightedTrans}</span>
         `;
         
         div.appendChild(jpText);
@@ -543,6 +576,7 @@
     
     cumulativeSection.style.display = 'block';
 }
+        
 
 // 슬래쉬 토글 기능
 let slashEnabled = false;
