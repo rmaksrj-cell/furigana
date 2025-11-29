@@ -485,68 +485,55 @@
         function buildCumulativeResults(arr) {
     cumulativeList.innerHTML = '';
     
+    // 누적 문자열 생성 (슬래쉬 포함)
+    let accumulatedJp = '';
+    let accumulatedTrans = '';
+    
     arr.forEach((item, idx) => {
         const div = document.createElement('div');
         div.className = 'cumulative-item';
         div.style.animationDelay = `${idx * 0.1}s`;
         
-        // 새로 추가된 단어 하이라이트 처리
         const jpText = document.createElement('div');
         jpText.className = 'cumulative-jp';
         
-        let displayJp = '';
-        let displayTranslation = '';
+        // 이번에 추가되는 부분
+        const newJpPart = item.jp;
         
+        // 누적 문자열에 추가
         if (idx === 0) {
-            // 첫 문장
-            const slashJp = slashEnabled ? '/' : '';
-            displayJp = `<span class="new-word" data-new="true">${slashJp}${item.jp}</span>`;
+            accumulatedJp = (slashEnabled ? '/' : '') + item.cumulativeJp;
+            accumulatedTrans = item.cumulativeTranslation;  // 슬래쉬 제거
         } else {
-            // 이전 문장과 비교
             const prevJp = arr[idx - 1].cumulativeJp;
             const currentJp = item.cumulativeJp;
+            const newPart = currentJp.slice(prevJp.length);
+            accumulatedJp += (slashEnabled ? '/' : '') + newPart;
             
-            if (currentJp.startsWith(prevJp)) {
-                const newJpPart = currentJp.slice(prevJp.length);
-                const slashJp = slashEnabled ? '/' : '';
-                displayJp = `${prevJp}<span class="new-word" data-new="true">${slashJp}${newJpPart}</span>`;
-            } else {
-                displayJp = currentJp;
-            }
+            const prevTrans = arr[idx - 1].cumulativeTranslation;
+            const currentTrans = item.cumulativeTranslation;
+            const spacing = currentTrans.slice(prevTrans.length).match(/^\s*/)[0];
+            const newTransOnly = currentTrans.slice(prevTrans.length).trimStart();
+            accumulatedTrans += spacing + newTransOnly;  // 슬래쉬 제거
         }
         
-        // 누적 일본어 표시 (슬래쉬 포함)
-        let cumulativeJpDisplay = '';
+        // 원문 표시 (하이라이트는 새 부분만)
+        let highlightedJp = '';
         if (idx === 0) {
-            cumulativeJpDisplay = slashEnabled ? '/' + item.cumulativeJp : item.cumulativeJp;
+            highlightedJp = `<span class="new-word" data-new="true">${(slashEnabled ? '/' : '') + newJpPart}</span>`;
         } else {
-            // 이전까지의 누적 + 새로운 부분
-            const prevCumulative = arr[idx - 1].cumulativeJp;
-            const newPart = item.cumulativeJp.slice(prevCumulative.length);
-            const slashNew = slashEnabled && newPart ? '/' : '';
-            cumulativeJpDisplay = prevCumulative + slashNew + newPart;
+            const prevJp = arr[idx - 1].cumulativeJp;
+            highlightedJp = `${prevJp}<span class="new-word" data-new="true">${(slashEnabled ? '/' : '') + newJpPart}</span>`;
         }
         
-        // 누적 번역 표시 (슬래쉬 포함)
-        let cumulativeTransDisplay = '';
-        if (idx === 0) {
-            cumulativeTransDisplay = slashEnabled ? '/' + item.cumulativeTranslation : item.cumulativeTranslation;
-        } else {
-            const prevTransCumulative = arr[idx - 1].cumulativeTranslation;
-            const newTransPart = item.cumulativeTranslation.slice(prevTransCumulative.length).trimStart();
-            const spacing = item.cumulativeTranslation.slice(prevTransCumulative.length).match(/^\s*/)[0];
-            const slashTrans = slashEnabled && newTransPart ? '/' : '';
-            cumulativeTransDisplay = prevTransCumulative + spacing + slashTrans + newTransPart;
-        }
-        
-        jpText.innerHTML = displayJp;
+        jpText.innerHTML = highlightedJp;
         
         const detail = document.createElement('div');
         detail.className = 'cumulative-detail';
         detail.innerHTML = `
-            <span>• <code>${cumulativeJpDisplay}</code> (${item.cumulativeKr})</span>
+            <span>• <code>${accumulatedJp}</code> (${item.cumulativeKr})</span>
             <span class="cumulative-arrow">→</span>
-            <span class="cumulative-translation">${cumulativeTransDisplay}</span>
+            <span class="cumulative-translation">${accumulatedTrans}</span>
         `;
         
         div.appendChild(jpText);
