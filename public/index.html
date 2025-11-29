@@ -494,61 +494,59 @@
         const jpText = document.createElement('div');
         jpText.className = 'cumulative-jp';
         
-        let highlightedJp = '';
-        let highlightedKr = '';
-        let highlightedTranslation = '';
+        let displayJp = '';
+        let displayTranslation = '';
         
         if (idx === 0) {
-            // 첫 문장은 전체를 새 단어로 표시
+            // 첫 문장
             const slashJp = slashEnabled ? '/' : '';
-            const slashTrans = slashEnabled ? '/' : '';
-            
-            highlightedJp = `<span class="new-word" data-new="true">${slashJp}${item.jp}</span>`;
-            highlightedKr = `<span class="new-word" data-new="true">${item.cumulativeKr}</span>`;
-            highlightedTranslation = `<span class="new-word" data-new="true">${slashTrans}${item.cumulativeTranslation}</span>`;
+            displayJp = `<span class="new-word" data-new="true">${slashJp}${item.jp}</span>`;
         } else {
-            // 이전 문장과 비교하여 새로운 부분만 하이라이트
+            // 이전 문장과 비교
             const prevJp = arr[idx - 1].cumulativeJp;
             const currentJp = item.cumulativeJp;
-            const prevKr = arr[idx - 1].cumulativeKr;
-            const currentKr = item.cumulativeKr;
-            const prevTranslation = arr[idx - 1].cumulativeTranslation;
-            const currentTranslation = item.cumulativeTranslation;
             
             if (currentJp.startsWith(prevJp)) {
                 const newJpPart = currentJp.slice(prevJp.length);
                 const slashJp = slashEnabled ? '/' : '';
-                highlightedJp = `${prevJp}<span class="new-word" data-new="true">${slashJp}${newJpPart}</span>`;
+                displayJp = `${prevJp}<span class="new-word" data-new="true">${slashJp}${newJpPart}</span>`;
             } else {
-                highlightedJp = currentJp;
-            }
-            
-            if (currentKr.startsWith(prevKr)) {
-                const newKrPart = currentKr.slice(prevKr.length).trimStart();
-                const spacing = currentKr.slice(prevKr.length).match(/^\s*/)[0];
-                highlightedKr = `${prevKr}${spacing}<span class="new-word" data-new="true">${newKrPart}</span>`;
-            } else {
-                highlightedKr = currentKr;
-            }
-            
-            if (currentTranslation.startsWith(prevTranslation)) {
-                const newTransPart = currentTranslation.slice(prevTranslation.length).trimStart();
-                const spacing = currentTranslation.slice(prevTranslation.length).match(/^\s*/)[0];
-                const slashTrans = slashEnabled ? '/' : '';
-                highlightedTranslation = `${prevTranslation}${spacing}<span class="new-word" data-new="true">${slashTrans}${newTransPart}</span>`;
-            } else {
-                highlightedTranslation = currentTranslation;
+                displayJp = currentJp;
             }
         }
         
-        jpText.innerHTML = highlightedJp;
+        // 누적 일본어 표시 (슬래쉬 포함)
+        let cumulativeJpDisplay = '';
+        if (idx === 0) {
+            cumulativeJpDisplay = slashEnabled ? '/' + item.cumulativeJp : item.cumulativeJp;
+        } else {
+            // 이전까지의 누적 + 새로운 부분
+            const prevCumulative = arr[idx - 1].cumulativeJp;
+            const newPart = item.cumulativeJp.slice(prevCumulative.length);
+            const slashNew = slashEnabled && newPart ? '/' : '';
+            cumulativeJpDisplay = prevCumulative + slashNew + newPart;
+        }
+        
+        // 누적 번역 표시 (슬래쉬 포함)
+        let cumulativeTransDisplay = '';
+        if (idx === 0) {
+            cumulativeTransDisplay = slashEnabled ? '/' + item.cumulativeTranslation : item.cumulativeTranslation;
+        } else {
+            const prevTransCumulative = arr[idx - 1].cumulativeTranslation;
+            const newTransPart = item.cumulativeTranslation.slice(prevTransCumulative.length).trimStart();
+            const spacing = item.cumulativeTranslation.slice(prevTransCumulative.length).match(/^\s*/)[0];
+            const slashTrans = slashEnabled && newTransPart ? '/' : '';
+            cumulativeTransDisplay = prevTransCumulative + spacing + slashTrans + newTransPart;
+        }
+        
+        jpText.innerHTML = displayJp;
         
         const detail = document.createElement('div');
         detail.className = 'cumulative-detail';
         detail.innerHTML = `
-            <span>• <code>${item.cumulativeJp}</code> (${highlightedKr})</span>
+            <span>• <code>${cumulativeJpDisplay}</code> (${item.cumulativeKr})</span>
             <span class="cumulative-arrow">→</span>
-            <span class="cumulative-translation">${highlightedTranslation}</span>
+            <span class="cumulative-translation">${cumulativeTransDisplay}</span>
         `;
         
         div.appendChild(jpText);
@@ -579,6 +577,7 @@ function toggleSlashes() {
         buildCumulativeResults(apiResultData);
     }
 }
+        
         
         function buildFromApiResult(arr) {
             clearPreview();
