@@ -477,48 +477,64 @@
         }
 
         function buildCumulativeResults(arr) {
-            cumulativeList.innerHTML = '';
+    cumulativeList.innerHTML = '';
+    
+    arr.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'cumulative-item';
+        div.style.animationDelay = `${idx * 0.1}s`;
+        
+        // 새로 추가된 단어 하이라이트 처리
+        const jpText = document.createElement('div');
+        jpText.className = 'cumulative-jp';
+        
+        let highlightedJp = '';
+        let highlightedKr = '';
+        
+        if (idx === 0) {
+            // 첫 문장은 전체를 새 단어로 표시
+            highlightedJp = `<span class="new-word">${item.jp}</span>`;
+            highlightedKr = `<span class="new-word">${item.cumulativeKr}</span>`;
+        } else {
+            // 이전 문장과 비교하여 새로운 부분만 하이라이트
+            const prevJp = arr[idx - 1].cumulativeJp;
+            const currentJp = item.cumulativeJp;
+            const prevKr = arr[idx - 1].cumulativeKr;
+            const currentKr = item.cumulativeKr;
             
-            arr.forEach((item, idx) => {
-                const div = document.createElement('div');
-                div.className = 'cumulative-item';
-                div.style.animationDelay = `${idx * 0.1}s`;
-                
-                // 새로 추가된 단어 하이라이트 처리
-                const jpText = document.createElement('div');
-                jpText.className = 'cumulative-jp';
-                
-                if (idx === 0) {
-                    // 첫 문장은 전체를 새 단어로 표시
-                    jpText.innerHTML = `<span class="new-word">${item.jp}</span>`;
-                } else {
-                    // 이전 문장과 비교하여 새로운 부분만 하이라이트
-                    const prevJp = arr[idx - 1].cumulativeJp;
-                    const currentJp = item.cumulativeJp;
-                    
-                    if (currentJp.startsWith(prevJp)) {
-                        const newPart = currentJp.slice(prevJp.length);
-                        jpText.innerHTML = `${prevJp}<span class="new-word">${newPart}</span>`;
-                    } else {
-                        jpText.textContent = currentJp;
-                    }
-                }
-                
-                const detail = document.createElement('div');
-                detail.className = 'cumulative-detail';
-                detail.innerHTML = `
-                    <span>• <code>${item.cumulativeJp}</code> (${item.cumulativeKr})</span>
-                    <span class="cumulative-arrow">→</span>
-                    <span class="cumulative-translation">${item.cumulativeTranslation}</span>
-                `;
-                
-                div.appendChild(jpText);
-                div.appendChild(detail);
-                cumulativeList.appendChild(div);
-            });
+            if (currentJp.startsWith(prevJp)) {
+                const newJpPart = currentJp.slice(prevJp.length);
+                highlightedJp = `${prevJp}<span class="new-word">${newJpPart}</span>`;
+            } else {
+                highlightedJp = currentJp;
+            }
             
-            cumulativeSection.style.display = 'block';
+            if (currentKr.startsWith(prevKr)) {
+                const newKrPart = currentKr.slice(prevKr.length);
+                highlightedKr = `${prevKr}<span class="new-word">${newKrPart}</span>`;
+            } else {
+                highlightedKr = currentKr;
+            }
         }
+        
+        jpText.innerHTML = highlightedJp;
+        
+        const detail = document.createElement('div');
+        detail.className = 'cumulative-detail';
+        detail.innerHTML = `
+            <span>• <code>${item.cumulativeJp}</code> (${highlightedKr})</span>
+            <span class="cumulative-arrow">→</span>
+            <span class="cumulative-translation">${item.cumulativeTranslation}</span>
+        `;
+        
+        div.appendChild(jpText);
+        div.appendChild(detail);
+        cumulativeList.appendChild(div);
+    });
+    
+    cumulativeSection.style.display = 'block';
+}
+        
 
         function buildFromApiResult(arr) {
             clearPreview();
