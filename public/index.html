@@ -425,11 +425,16 @@
 
         <div class="small">💡 출력 형식: <ruby>日本語<rt>ひらがな｜한글</rt></ruby></div>
 
+
         <!-- 누적 센텐스 결과 섹션 -->
-        <div class="cumulative-section" id="cumulativeSection" style="display:none">
-            <h3>📝 누적 센텐스 결과</h3>
-            <div id="cumulativeList"></div>
+    <div class="cumulative-section" id="cumulativeSection" style="display:none">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0;">📝 누적 센텐스 결과</h3>
+            <button id="slashToggle" onclick="toggleSlashes()" style="padding: 8px 16px; font-size: 14px; background: #10b981;">/ 슬래쉬 추가</button>
         </div>
+        <div id="cumulativeList"></div>
+    </div>
+       
 
         <div class="meaning-section" id="meaningSection" style="display:none">
             <h3>📖 단어 뜻 & 문장 번역</h3>
