@@ -466,8 +466,6 @@
         let sentences = [];
         let selectedSentenceIndex = -1;
 
-        let ttsWarmupDone = false;
-
         rateEl.addEventListener('input', () => {
             rateLabel.textContent = parseFloat(rateEl.value).toFixed(2) + 'x';
         });
@@ -475,10 +473,7 @@
         function clearPreview() {
             preview.innerHTML = '';
             wordSpans = [];
-            if (currentUtter) {
-                try { speechSynthesis.cancel(); } catch(e) {}
-                currentUtter = null;
-            }
+            if (currentUtter) speechSynthesis.cancel();
             meaningSection.style.display = 'none';
             meaningList.innerHTML = '';
             cumulativeSection.style.display = 'none';
@@ -583,7 +578,6 @@
 }
         
 
-
 // 슬래쉬 토글 기능
 let slashEnabled = false;
 
@@ -678,42 +672,7 @@ function toggleSlashes() {
             meaningList.scrollTop = meaningList.scrollHeight;
         }
 
-        // ---------------- Android-stable TTS 시작 관련 ----------------
-        // 최초 터치 시 1회만 음성 엔진 워밍업 (Android에서 첫 재생 무반응을 완화)
-        function warmupTTS() {
-            if (ttsWarmupDone) return;
-            ttsWarmupDone = true;
-            try {
-                const d = new SpeechSynthesisUtterance("テスト");
-                d.volume = 0;
-                d.lang = "ja-JP";
-                // 안전하게 speak 후 바로 cancel
-                speechSynthesis.speak(d);
-                setTimeout(() => {
-                    try { speechSynthesis.cancel(); } catch (e) {}
-                }, 50);
-            } catch (e) {
-                console.warn("warmup 실패", e);
-            }
-        }
-
-        // startTTS: 사용자 제스처로 호출되도록 play 버튼에서 이 함수를 호출
-        async function startTTS() {
-            const text = japaneseEl.value.trim();
-            if (!text) return;
-
-            // 재생 중이면 cancel 후 짧게 대기 (Android WebView/Chrome 버그 대응)
-            if (speechSynthesis.speaking || speechSynthesis.pending) {
-                try { speechSynthesis.cancel(); } catch (e) {}
-                await new Promise(res => setTimeout(res, 200));
-            }
-
-            // 실제 재생 함수
-            await playSequence();
-        }
-
-        // playSequence를 async로 바꿔 준비 단계(딜레이 등)를 처리
-        async function playSequence() {
+        function playSequence() {
             const text = japaneseEl.value.trim();
             if (!text) return;
 
@@ -722,12 +681,12 @@ function toggleSlashes() {
                 return;
             }
 
-            // 초기화 (의미 표시 등)
+            if (currentUtter) speechSynthesis.cancel();
+
             apiResultData.forEach(d => d.meaningShown = false);
             meaningList.innerHTML = '';
             wordSpans.forEach(s => s.classList.remove('revealed'));
 
-            // startIndex 계산
             let currentIndex = 0;
             apiResultData.forEach(item => {
                 const foundIndex = text.indexOf(item.jp, currentIndex);
@@ -739,24 +698,17 @@ function toggleSlashes() {
                 }
             });
 
-            // Android 안정화: cancel 이후에 짧게 대기(추가 안전장치)
-            if (speechSynthesis.speaking || speechSynthesis.pending) {
-                try { speechSynthesis.cancel(); } catch (e) {}
-                await new Promise(res => setTimeout(res, 180));
-            }
-
             const u = new SpeechSynthesisUtterance(text);
             u.lang = 'ja-JP';
-            u.rate = parseFloat(rateEl.value) || 1.0;
+            u.rate = parseFloat(rateEl.value);
             currentUtter = u;
 
             u.onstart = () => {
                 statusEl.textContent = '상태: TTS 재생 중...';
             };
 
-            // onboundary는 Android에서도 불완전하므로 defensive하게 구현
             u.onboundary = (event) => {
-                try {
+                if (event.name === 'word' || event.name === 'sentence') {
                     const charIndex = event.charIndex;
                     let activeIndex = -1;
                     for (let i = 0; i < apiResultData.length; i++) {
@@ -766,36 +718,20 @@ function toggleSlashes() {
                             break;
                         }
                     }
-                    if (activeIndex !== -1) revealNext(activeIndex);
-                } catch (e) {
-                    // 무시
+
+                    if (activeIndex !== -1) {
+                        revealNext(activeIndex);
+                    }
                 }
             };
 
             u.onend = () => {
                 revealAll();
                 statusEl.textContent = '상태: 재생 완료!';
-                currentUtter = null;
             };
 
-            u.onerror = (err) => {
-                console.warn("TTS 오류:", err);
-                statusEl.textContent = '상태: 재생 오류 발생';
-                currentUtter = null;
-            };
-
-            // speak 호출
-            try {
-                speechSynthesis.speak(u);
-            } catch (e) {
-                console.warn("speak 예외:", e);
-                // 재시도: cancel 후 약간 대기하고 다시 시도
-                try { speechSynthesis.cancel(); } catch (e2) {}
-                await new Promise(res => setTimeout(res, 200));
-                try { speechSynthesis.speak(u); } catch (e3) { console.error("speak 재시도 실패", e3); }
-            }
+            speechSynthesis.speak(u);
         }
-        // ---------------- Android-stable TTS 끝 ----------------
 
         async function callApi(text) {
             try {
@@ -842,13 +778,7 @@ function toggleSlashes() {
             }
         });
 
-        // 사용자 제스처로 호출되도록 변경: touchstart에서 워밍업(한번만), click에서 실제 시작
-        playBtn.addEventListener('touchstart', () => warmupTTS(), { passive: true, once: true });
-        playBtn.addEventListener('click', (e) => {
-            // 추가 안전: 만약 아직 warmup이 안됐으면 바로 수행
-            if (!ttsWarmupDone) warmupTTS();
-            startTTS();
-        });
+        playBtn.addEventListener('click', () => playSequence());
 
         pauseBtn.addEventListener('click', () => {
             if (speechSynthesis.speaking) speechSynthesis.pause();
@@ -857,7 +787,6 @@ function toggleSlashes() {
         clearBtn.addEventListener('click', () => {
             japaneseEl.value = '';
             clearPreview();
-            try { speechSynthesis.cancel(); } catch(e) {}
             statusEl.textContent = '상태: 초기화됨';
             playBtn.disabled = true;
         });
