@@ -771,9 +771,21 @@ input[type="file"]::-webkit-file-upload-button:hover {
     font-weight: 700;
 }
 
+#analysisList {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 768px) {
+    #analysisList {
+        grid-template-columns: 1fr;
+    }
+}
+
 .analysis-item {
     padding: 16px;
-    margin-bottom: 12px;
+    margin-bottom: 0;
     background: rgba(255, 255, 255, 0.95);
     border-radius: 8px;
     border-left: 4px solid #f5576c;

@@ -651,6 +651,9 @@ async function handleGenerate() {
     try {
         const arr = await callApi(text);
         buildFromApiResult(arr);
+
+        // 자동으로 문장 분석도 실행
+        await performAnalysis(text);
     } catch (err) {
         console.error(err);
         statusEl.textContent = '상태: 변환 실패 ❌';
@@ -685,16 +688,7 @@ async function checkHealth() {
 }
 
 // ========== 문장 분석 함수 ==========
-async function handleAnalyze() {
-    const text = japaneseEl.value.trim();
-    if (!text) {
-        statusEl.textContent = '상태: 일본어 문장을 입력하세요.';
-        return;
-    }
-
-    statusEl.textContent = '상태: 문장 분석 중... ⏳';
-    analyzeBtn.disabled = true;
-
+async function performAnalysis(text) {
     try {
         const resp = await fetch(`${API_BASE_URL}/api/analyze`, {
             method: 'POST',
@@ -722,11 +716,30 @@ async function handleAnalyze() {
         try {
             const data = JSON.parse(responseText);
             displayAnalysis(data);
-            statusEl.textContent = '상태: 문장 분석 완료! ✓';
+            return data;
         } catch (e) {
             console.error('Failed to parse success response:', responseText.substring(0, 200));
             throw new Error('서버 응답을 파싱할 수 없습니다');
         }
+    } catch (err) {
+        console.error('Analysis error:', err);
+        throw err;
+    }
+}
+
+async function handleAnalyze() {
+    const text = japaneseEl.value.trim();
+    if (!text) {
+        statusEl.textContent = '상태: 일본어 문장을 입력하세요.';
+        return;
+    }
+
+    statusEl.textContent = '상태: 문장 분석 중... ⏳';
+    analyzeBtn.disabled = true;
+
+    try {
+        await performAnalysis(text);
+        statusEl.textContent = '상태: 문장 분석 완료! ✓';
     } catch (err) {
         console.error(err);
         statusEl.textContent = '상태: 분석 실패 ❌';
