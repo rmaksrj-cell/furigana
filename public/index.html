@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>일본어 자동 독음(ruby) + TTS 재생</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- 문장 목록 패널 -->
+    <div class="panel" id="sentencePanel" style="display:none; margin-bottom: 20px;">
+        <h2 style="color: #10b981;">📋 문장 목록</h2>
+        <div class="hint" style="margin-bottom: 12px;">문장을 클릭하면 아래 입력창에 자동으로 입력됩니다.</div>
+        <div class="sentence-list-container" id="sentenceList"></div>
+    </div>
+
+    <div class="panel">
+        <h2>🇯🇵 일본어 자동 독음 + TTS 재생기</h2>
+        <div class="hint">일본어 문장을 입력하고 "자동독음 생성"을 누르면 GPT가 형태소별로 히라가나 읽기와 한국어 발음을 생성합니다.</div>
+
+        <label>📁 일본어 문장 파일 업로드 (선택사항)</label>
+        <input type="file" id="fileInput" accept=".txt,.csv">
+        <div class="hint" style="margin-top: 8px;">TXT 또는 CSV 파일을 업로드하면 위에 문장 목록이 표시됩니다.</div>
+
+        <label>일본어 문장 입력</label>
+        <textarea id="japanese" rows="3" placeholder="예: 今日の晩ご飯は何を食べようか">今日の晩ご飯は何を食べようか</textarea>
+
+        <div class="controls">
+            <button id="analyzeBtn">📊 문장분석</button>
+            <button id="gen">자동독음 생성</button>
+            <button id="play">▶ 브라우저 TTS</button>
+            <button id="playServer" style="background:#10b981">☁️ 서버 TTS (추천)</button>
+            <button id="pause" class="btn-secondary">⏸ 일시정지</button>
+            <button id="clear" class="btn-secondary">🔄 초기화</button>
+        </div>
+
+        <div class="controls">
+            <div class="speed-control">
+                <label style="margin:0">재생 속도:</label>
+                <input id="rate" type="range" min="0.6" max="2.0" step="0.05" value="1.0" />
+                <span id="rateLabel">1.00x</span>
+            </div>
+        </div>
+
+        <div class="status" id="status">상태: 준비됨</div>
+
+        <div class="preview" id="preview" aria-live="polite"></div>
+
+        <div class="small">💡 출력 형식: <ruby>日本語<rt>ひらがな｜한글</rt></ruby></div>
+
+
+        <!-- 누적 결과 요약 섹션 -->
+        <div class="result-summary-section" id="resultSummarySection" style="display:none">
+            <div class="result-summary-header">
+                <h3>✨ 완성된 문장 결과</h3>
+                <div style="display:flex; align-items:center;">
+                    <button class="save-btn" id="saveToLibBtn" onclick="saveToLibrary()">
+                        <span>📚</span> 저장
+                    </button>
+                    <button class="toggle-btn" id="summaryToggle" onclick="toggleSummary()">▼ 펼치기</button>
+                </div>
+            </div>
+            <div class="result-summary-content collapsed" id="summaryContent">
+                <div class="final-result">
+                    <div class="final-result-label">📝 일본어 원문</div>
+                    <div class="final-result-text" id="finalJp"></div>
+                </div>
+                <div class="final-result">
+                    <div class="final-result-label">🔤 히라가나 읽기</div>
+                    <div class="final-result-reading" id="finalRead"></div>
+                </div>
+                <div class="final-result">
+                    <div class="final-result-label">🇰🇷 한국어 발음</div>
+                    <div class="final-result-korean" id="finalKr"></div>
+                </div>
+                <div class="final-result">
+                    <div class="final-result-label">💬 한국어 번역</div>
+                    <div class="final-result-translation" id="finalTranslation"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 누적 센텐스 결과 섹션 -->
+        <div class="cumulative-section" id="cumulativeSection" style="display:none">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                <h3 style="margin: 0;">📝 누적 센텐스 결과</h3>
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    <div class="color-picker-container">
+                        <span style="font-size: 13px; font-weight: 600; color: #555;">🎨 하이라이트:</span>
+                        <div class="color-preset" data-color="yellow"
+                            style="background: linear-gradient(120deg, #ffd54f, #ffb300);" title="노란색"></div>
+                        <div class="color-preset" data-color="green"
+                            style="background: linear-gradient(120deg, #a7f3d0, #34d399);" title="초록색"></div>
+                        <div class="color-preset" data-color="blue"
+                            style="background: linear-gradient(120deg, #bfdbfe, #60a5fa);" title="파란색"></div>
+                        <div class="color-preset" data-color="pink"
+                            style="background: linear-gradient(120deg, #fbcfe8, #f472b6);" title="분홍색"></div>
+                        <div class="color-preset" data-color="purple"
+                            style="background: linear-gradient(120deg, #ddd6fe, #a78bfa);" title="보라색"></div>
+                        <input type="color" id="customColor" class="custom-color-input" title="사용자 정의 색상"
+                            value="#ffd54f">
+                    </div>
+                    <button id="slashToggle" onclick="toggleSlashes()"
+                        style="padding: 8px 16px; font-size: 14px; background: #10b981;">/ 슬래쉬 추가</button>
+                </div>
+            </div>
+            <div id="cumulativeList"></div>
+        </div>
+
+        <!-- 문장 분석 섹션 -->
+        <div class="analysis-section" id="analysisSection" style="display:none">
+            <h3>📊 문장 분석</h3>
+            <div id="analysisList"></div>
+        </div>
+
+
+        <div class="meaning-section" id="meaningSection" style="display:none">
+            <h3>📖 단어 뜻 & 문장 번역</h3>
+            <div id="meaningList"></div>
+        </div>
+
+        <!-- 라이브러리 컨테이너: 예문 라이브러리 + SRT 라이브러리 -->
+        <div class="libraries-container">
+            <!-- 예문 라이브러리 섹션 -->
+            <div class="library-section" id="librarySection">
+                <div class="library-header">
+                    <h3>📚 예문 라이브러리 <span id="libCount"
+                            style="font-size:12px; background:#f3f4f6; padding:2px 8px; border-radius:12px; color:#6b7280">0</span>
+                    </h3>
+                    <button onclick="clearLibrary()" class="btn-secondary"
+                        style="padding:4px 10px; font-size:12px; background:#9ca3af;">전체 삭제</button>
+                </div>
+                <div class="library-grid" id="libraryList">
+                    <!-- 자바스크립트로 채워짐 -->
+                </div>
+            </div>
+
+            <!-- SRT 라이브러리 섹션 -->
+            <div class="srt-library-section" id="srtLibrarySection">
+                <div class="library-header">
+                    <h3>🎬 SRT 파일 라이브러리 <span id="srtLibCount"
+                            style="font-size:12px; background:#f3f4f6; padding:2px 8px; border-radius:12px; color:#6b7280">0</span>
+                    </h3>
+                    <button onclick="clearSrtLibrary()" class="btn-secondary"
+                        style="padding:4px 10px; font-size:12px; background:#9ca3af;">전체 삭제</button>
+                </div>
+                <div class="srt-upload-area">
+                    <input type="file" id="srtFileInput" accept=".srt">
+                    <div class="hint" style="margin-top: 8px;">SRT 파일을 업로드하면 자막 문장들을 추출하여 저장합니다.</div>
+                </div>
+                <div class="library-grid" id="srtLibraryList">
+                    <!-- 자바스크립트로 채워짐 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=2.0"></script>
+</body>
+
+</html>
