@@ -17,6 +17,56 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+/* ------------------------ GitHub OAuth API ------------------------ */
+
+import fetch from "node-fetch";
+
+// 1) OAuth code → token 변환
+app.get("/auth", async (req, res)=>{
+    const { code } = req.query;
+
+    const response = await fetch("https://github.com/login/oauth/access_token",{
+        method: "POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Accept":"application/json"
+        },
+        body:JSON.stringify({
+            client_id: process.env.GITHUB_CLIENT_ID,
+            client_secret: process.env.GITHUB_CLIENT_SECRET,
+            code
+        })
+    });
+
+    const data = await response.json();
+    return res.redirect(`/public/index.html?token=${data.access_token}`);
+});
+
+// 2) 사용자 repo 목록 가져오기
+app.get("/api/github/repos", async (req,res)=>{
+    const { token } = req.query;
+
+    const response = await fetch("https://api.github.com/user/repos",{
+        headers:{Authorization:`token ${token}`}
+    });
+
+    const repos = await response.json();
+    res.json(repos);
+});
+
+// 3) 특정 repo 파일 목록
+app.get("/api/github/files", async (req,res)=>{
+    const { repo, token } = req.query;
+
+    const response = await fetch(`https://api.github.com/repos/${repo}/contents`,{
+        headers:{Authorization:`token ${token}`}
+    });
+
+    const files = await response.json();
+    res.json(files);
+});
+
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, status: 'Server is running' });
