@@ -22,7 +22,7 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true, status: 'Server is running' });
 });
 
-// 메인 변환 엔드포인트
+// 기존 일본어 분석 엔드포인트
 app.post('/api/furigana', async (req, res) => {
   const { text } = req.body;
 
@@ -131,6 +131,123 @@ Example for "今日の晩ご飯は何を食べようか":
     console.error('API Error:', error);
     res.status(500).json({
       error: 'Failed to process text',
+      details: error.message
+    });
+  }
+});
+
+// 🆕 한국어→일본어 번역 및 분석 엔드포인트
+app.post('/api/translate-kr-to-jp', async (req, res) => {
+  const { text } = req.body;
+
+  if (!text) {
+    return res.status(400).json({ error: 'text required' });
+  }
+
+  try {
+    // Step 1: 한국어→일본어 번역
+    const translationResponse = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a Korean to Japanese translator. Translate the given Korean text into natural, fluent Japanese.
+
+Rules:
+- Translate Korean text to natural Japanese
+- Maintain the original meaning and nuance
+- Use appropriate Japanese grammar and expressions
+- Return ONLY the translated Japanese text, no explanation, no markdown
+- Do not include any additional formatting or commentary`
+        },
+        { role: 'user', content: `Translate this Korean text to Japanese: "${text}"` }
+      ],
+      temperature: 0.3,
+      max_tokens: 1000
+    });
+
+    const japaneseText = translationResponse.choices[0].message.content.trim();
+
+    // Step 2: 번역된 일본어 분석
+    const analysisResponse = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a Japanese-to-reading converter with translation. Return EXACTLY a JSON array where each element is an object:
+{ "jp": "<原文の語句>", "read": "<ひらがな reading>", "kr": "<한국어 발음>", "meaning": "<한국어 뜻>" }.
+
+Rules:
+- Split into natural word/phrase units (particles, nouns, verbs, etc.)
+- "read" must be hiragana only for that specific word/phrase
+- "kr" should be Korean pronunciation for that specific word/phrase
+- "meaning" should be Korean translation of that specific word/phrase
+- Return ONLY the JSON array, no explanation, no markdown
+
+Example for "今日の晩ご飯は何を食べようか": 
+[
+  {
+    "jp": "今日の",
+    "read": "きょうの",
+    "kr": "쿄-노",
+    "meaning": "오늘의"
+  },
+  {
+    "jp": "晩ご飯は",
+    "read": "ばんごはんは",
+    "kr": "방고항와",
+    "meaning": "저녁밥은"
+  },
+  {
+    "jp": "何を",
+    "read": "なにを",
+    "kr": "나니오",
+    "meaning": "무엇을"
+  },
+  {
+    "jp": "食べようか",
+    "read": "たべようか",
+    "kr": "타베요-카",
+    "meaning": "먹을까"
+  }
+]`
+        },
+        { role: 'user', content: `Convert this Japanese sentence: "${japaneseText}"` }
+      ],
+      temperature: 0.1,
+      max_tokens: 2000
+    });
+
+    let analysisContent = analysisResponse.choices[0].message.content.trim();
+
+    // Remove markdown code blocks if present
+    analysisContent = analysisContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+
+    const parsed = JSON.parse(analysisContent);
+
+    // Validation
+    if (!Array.isArray(parsed)) {
+      throw new Error('Response is not an array');
+    }
+
+    // Ensure each item has required fields
+    const validated = parsed.map(item => ({
+      jp: item.jp || '',
+      read: item.read || '',
+      kr: item.kr || '',
+      meaning: item.meaning || ''
+    }));
+
+    // 응답 반환
+    res.json({
+      translatedText: japaneseText,
+      analysis: validated
+    });
+
+  } catch (error) {
+    console.error('Translation API Error:', error);
+    res.status(500).json({
+      error: 'Failed to translate and analyze text',
       details: error.message
     });
   }
@@ -262,7 +379,7 @@ Example for "今日は晴れです":
   }
 });
 
-// 한글→일본어 번역 엔드포인트
+// 한글→일본어 번역 엔드포인트 (단순 번역만)
 app.post('/api/translate', async (req, res) => {
   const { text } = req.body;
 
@@ -313,5 +430,5 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`📋 Health check: http://localhost:${PORT}/api/health`);
 });
