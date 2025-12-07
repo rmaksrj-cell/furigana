@@ -255,7 +255,7 @@ Example for "今日の晩ご飯は何を食べようか":
 
 // TTS 엔드포인트 (Google TTS 사용)
 app.post('/api/tts', async (req, res) => {
-  const { text, speed = 1.0 } = req.body;
+  const { text, lang = 'ja', speed = 1.0 } = req.body;
 
   if (!text) {
     return res.status(400).json({ error: 'text required' });
@@ -264,7 +264,7 @@ app.post('/api/tts', async (req, res) => {
   try {
     // Google TTS API로부터 오디오 URL 생성
     const url = googleTTS.getAudioUrl(text, {
-      lang: 'ja',
+      lang: lang,
       slow: speed < 1.0,
       host: 'https://translate.google.com',
     });
