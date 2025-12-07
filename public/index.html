@@ -760,6 +760,60 @@
                 throw e;
             }
         }
+        /* -------------------  GitHub OAuth + Repo File Explorer -------------------- */
+
+const GITHUB_CLIENT_ID = "⚠️여기에_너의_CLIENT_ID";
+const redirectUri = window.location.origin + "/auth";
+
+document.getElementById("githubLoginBtn").addEventListener("click", () => {
+    const url = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo&redirect_uri=${redirectUri}`;
+    window.location.href = url;
+});
+
+// 로그인 후 token URL 파싱
+const token = new URLSearchParams(window.location.search).get("token");
+
+if(token){
+    loadGithubRepos(token);
+}
+
+async function loadGithubRepos(token){
+    const res = await fetch("/api/github/repos?token=" + token);
+    const repos = await res.json();
+
+    document.getElementById("githubRepos").innerHTML = 
+        "<h3>📁 저장소 선택</h3>" +
+        repos.map(r => `<button class="repoBtn" data-name="${r.full_name}">${r.name}</button>`).join("<br>");
+
+    document.querySelectorAll(".repoBtn").forEach(btn=>{
+        btn.addEventListener("click",()=> loadRepoFiles(btn.dataset.name));
+    });
+}
+
+async function loadRepoFiles(repoName){
+    const res = await fetch(`/api/github/files?repo=${repoName}&token=${token}`);
+    const files = await res.json();
+
+    const srtList = files.filter(f => f.name.endsWith(".srt") || f.name.endsWith(".txt"));
+
+    document.getElementById("githubFiles").innerHTML =
+        "<h3>📝 자막 파일 선택</h3>" +
+        srtList.map(f => `<button class="fileBtn" data-url="${f.download_url}">${f.name}</button>`).join("<br>");
+
+    document.querySelectorAll(".fileBtn").forEach(btn=>{
+        btn.addEventListener("click",()=> loadSubtitleFromGithub(btn.dataset.url));
+    });
+}
+
+async function loadSubtitleFromGithub(url){
+    const res = await fetch(url);
+    const text = await res.text();
+    sentences = text.split("\n").filter(line => line.trim());
+
+    displaySentenceList();
+    statusEl.textContent = `상태: ${sentences.length}개 자막 로드됨 (GitHub)`;
+}
+
     </script>
 </body>
 
