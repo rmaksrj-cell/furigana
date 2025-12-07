@@ -306,10 +306,13 @@ function buildCumulativeResults(arr) {
     <div style="margin-bottom: 6px;">
         <span class="cumulative-translation">${highlightedTrans}</span>
     </div>
+    <div style="padding-left: 12px; margin-bottom: 6px;">
+        <span>${highlightedJp}</span>
+    </div>
     <div style="padding-left: 12px;">
-        <span>• <code>${accumulatedTransWithSlash}</code></span>
+        <span>• <code>${highlightedKr}</code></span>
         <span class="cumulative-arrow">→</span>
-        <span>(${highlightedKr})</span>
+        <span>(${accumulatedTransWithSlash})</span>
     </div>
 `;
 
