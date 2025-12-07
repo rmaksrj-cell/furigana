@@ -242,12 +242,9 @@
         }
 
         @keyframes highlight {
-
-            0%,
-            100% {
+            0%, 100% {
                 transform: scale(1);
             }
-
             50% {
                 transform: scale(1.05);
             }
@@ -352,7 +349,7 @@
 <body>
     <div class="panel" id="sentencePanel" style="display:none;">
         <h2 style="color: #10b981;">📋 문장 목록</h2>
-        <div class="hint" style="margin-bottom: 12px;">문장을 클릭하면 아래 입력창에 자동으로 입력됩니다.</div>
+        <div class="hint" style="margin-bottom: 12px;">문장을 클릭하면 아래 입력창에 누적으로 추가됩니다.</div>
         <div class="sentence-list-container" id="sentenceList"></div>
     </div>
 
@@ -361,16 +358,15 @@
         <div class="hint">한국어 문장을 입력하고 "일본어로 번역"을 누르면 자동으로 일본어로 번역되고, 형태소별로 히라가나 읽기와 한국어 발음을 생성합니다.</div>
 
         <label>📁 한국어 자막 파일 업로드 (선택사항)</label>
-    <input type="file" id="fileInput" accept=".srt,.txt">
-    <div class="hint" style="margin-top: 8px;">SRT 또는 TXT 파일을 업로드하면 위에 문장 목록이 표시됩니다.</div>
+        <input type="file" id="fileInput" accept=".srt,.txt">
+        <div class="hint" style="margin-top: 8px;">SRT 또는 TXT 파일을 업로드하면 위에 문장 목록이 표시됩니다.</div>
 
-    <!-- 🆕 GitHub OAuth 방식 -->
-    <button id="githubLoginBtn" style="background:#24292E;">🐙 GitHub에서 자막 불러오기</button>
-    <div id="githubRepos" style="margin-top:10px;"></div>
-    <div id="githubFiles" style="margin-top:10px;"></div>
+        <button id="githubLoginBtn" style="background:#24292E;">🙏 GitHub에서 자막 불러오기</button>
+        <div id="githubRepos" style="margin-top:10px;"></div>
+        <div id="githubFiles" style="margin-top:10px;"></div>
 
         <label>한국어 문장 입력</label>
-        <textarea id="korean" rows="3" placeholder="예: 오늘 저녁은 무엇을 먹을까?">오늘 저녁은 무엇을 먹을까?</textarea>
+        <textarea id="korean" rows="5" placeholder="예: 오늘 저녁은 무엇을 먹을까?">오늘 저녁은 무엇을 먹을까?</textarea>
 
         <div class="controls">
             <button id="translateBtn">🔄 일본어로 번역</button>
@@ -480,19 +476,18 @@
                 translationBox.style.display = 'block';
 
                 buildFromApiResult(data.analysis, koreanText, data.translatedText);
-                statusEl.textContent = '상태: 번역 및 분석 완료! ✓';
+                statusEl.textContent = '상태: 번역 및 분석 완료! ✔';
 
-                // TTS 재생 시퀀스: 한글 1번 -> 일본어 2번
                 try {
                     statusEl.textContent = '상태: 오디오 재생 중... (KR)';
                     await playAudio(koreanText, 'ko');
 
-                    await new Promise(r => setTimeout(r, 500)); // 간격
+                    await new Promise(r => setTimeout(r, 500));
 
                     statusEl.textContent = '상태: 오디오 재생 중... (JP 1/2)';
                     await playAudio(data.translatedText, 'ja');
 
-                    await new Promise(r => setTimeout(r, 500)); // 간격
+                    await new Promise(r => setTimeout(r, 500));
 
                     statusEl.textContent = '상태: 오디오 재생 중... (JP 2/2)';
                     await playAudio(data.translatedText, 'ja');
@@ -555,40 +550,36 @@
                 div.className = 'cumulative-item';
                 div.style.animationDelay = `${idx * 0.1}s`;
 
-                // 1. Meaning (뜻)
                 const meaningDiv = document.createElement('div');
                 meaningDiv.className = 'cumulative-detail';
                 meaningDiv.innerHTML = `
-            <div style="margin-bottom: 7px;">
-                <span style="color: #8B0000; font-weight: 600;">뜻: ${item.meaning || ''}</span>
-            </div>
-        `;
+                    <div style="margin-bottom: 7px;">
+                        <span style="color: #8B0000; font-weight: 600;">뜻: ${item.meaning || ''}</span>
+                    </div>
+                `;
                 div.appendChild(meaningDiv);
 
-                // 2. Pronunciation (발음)
                 const pronDiv = document.createElement('div');
                 pronDiv.className = 'cumulative-detail';
                 pronDiv.innerHTML = `
-            <div style="margin-bottom: 6px;">
-                <span style="color: #2E8B57; font-weight: 600;">발음: ${item.kr || ''}</span>
-            </div>
-        `;
+                    <div style="margin-bottom: 6px;">
+                        <span style="color: #2E8B57; font-weight: 600;">발음: ${item.kr || ''}</span>
+                    </div>
+                `;
                 div.appendChild(pronDiv);
 
-                // 3. Japanese Word (일본어 단어)
                 const jpText = document.createElement('div');
                 jpText.className = 'cumulative-jp';
                 jpText.innerHTML = `<span class="new-word">${item.jp}</span>`;
                 div.appendChild(jpText);
 
-                // 4. Hiragana (히라가나)
                 const hiraganaDiv = document.createElement('div');
                 hiraganaDiv.className = 'cumulative-detail';
                 hiraganaDiv.innerHTML = `
-            <div>
-                <span style="color: #5e35b1; font-weight: 600;">히라가나: ${item.read || ''}</span>
-            </div>
-        `;
+                    <div>
+                        <span style="color: #5e35b1; font-weight: 600;">히라가나: ${item.read || ''}</span>
+                    </div>
+                `;
                 div.appendChild(hiraganaDiv);
 
                 cumulativeList.appendChild(div);
@@ -713,21 +704,26 @@
 
         function selectSentence(index) {
             selectedSentenceIndex = index;
-            koreanEl.value = sentences[index];
+            
+            const currentText = koreanEl.value.trim();
+            if (currentText) {
+                koreanEl.value = currentText + '\n' + sentences[index];
+            } else {
+                koreanEl.value = sentences[index];
+            }
 
             document.querySelectorAll('.sentence-item').forEach((item, i) => {
                 if (i === index) {
                     item.classList.add('selected');
-                } else {
-                    item.classList.remove('selected');
+                    setTimeout(() => item.classList.remove('selected'), 300);
                 }
             });
 
-            clearPreview();
-            statusEl.textContent = `상태: 문장 #${index + 1} 선택됨`;
+            statusEl.textContent = `상태: 문장 #${index + 1} 추가됨 (누적 모드)`;
 
             koreanEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
             koreanEl.focus();
+            koreanEl.setSelectionRange(koreanEl.value.length, koreanEl.value.length);
         }
 
         async function playAudio(text, lang) {
@@ -760,132 +756,71 @@
                 throw e;
             }
         }
-        /* -------------------  GitHub OAuth + Repo File Explorer -------------------- */
 
-const GITHUB_CLIENT_ID = "Ov23liLygiyWc0h5O5uU";
-const redirectUri = encodeURIComponent(window.location.origin + "/auth");  // URL 인코딩 추가
+        /* GitHub OAuth */
+        const GITHUB_CLIENT_ID = "Ov23liLygiyWc0h5O5uU";
+        const redirectUri = encodeURIComponent(window.location.origin + "/auth");
 
-document.getElementById("githubLoginBtn").addEventListener("click", () => {
-    const url = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo&redirect_uri=${redirectUri}`;
-    window.location.href = url;
-});
-        
-let githubToken = null;  // 전역 변수로 선언
+        let githubToken = null;
 
-// 로그인 후 token URL 파싱
-githubToken = new URLSearchParams(window.location.search).get("token");
-
-if(githubToken){
-    console.log("Token 발견:", githubToken.substring(0, 10) + "...");
-    loadGithubRepos(githubToken);
-}
-
-async function loadGithubRepos(token){
-    try {
-        console.log("GitHub 저장소 로딩 중...");
-        const res = await fetch(`${API_BASE_URL}/api/github/repos?token=${token}`);  // API_BASE_URL 사용
-        
-        if (!res.ok) {
-            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-        }
-        
-        const repos = await res.json();
-        console.log("저장소 목록:", repos);
-
-        if (!Array.isArray(repos) || repos.length === 0) {
-            document.getElementById("githubRepos").innerHTML = 
-                "<div style='color:#666; padding:10px;'>저장소가 없습니다.</div>";
-            return;
-        }
-
-        document.getElementById("githubRepos").innerHTML = 
-            "<h3>📁 저장소 선택</h3>" +
-            repos.map(r => `<button class="repoBtn" data-name="${r.full_name}" style="margin:5px; padding:8px 12px; background:#24292E; color:white; border:none; border-radius:6px; cursor:pointer;">${r.name}</button>`).join("");
-
-        document.querySelectorAll(".repoBtn").forEach(btn=>{
-            btn.addEventListener("click", async () => {  // async 추가
-                console.log("저장소 선택:", btn.dataset.name);
-                await loadRepoFiles(btn.dataset.name, token);  // token 전달
-            });
+        document.getElementById("githubLoginBtn").addEventListener("click", () => {
+            const url = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo&redirect_uri=${redirectUri}`;
+            window.location.href = url;
         });
-    } catch (error) {
-        console.error("저장소 로딩 오류:", error);
-        alert("GitHub 저장소를 불러오는데 실패했습니다: " + error.message);
-    }
-}
 
-async function loadRepoFiles(repoName, token){  // token 파라미터 추가
-    try {
-        console.log("파일 목록 로딩 중:", repoName);
-        const res = await fetch(`${API_BASE_URL}/api/github/files?repo=${repoName}&token=${token}`);  // API_BASE_URL 사용
-        
-        if (!res.ok) {
-            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-        }
-        
-        const files = await res.json();
-        console.log("파일 목록:", files);
+        githubToken = new URLSearchParams(window.location.search).get("token");
 
-        const srtList = files.filter(f => f.name && (f.name.endsWith(".srt") || f.name.endsWith(".txt")));
-
-        if (srtList.length === 0) {
-            document.getElementById("githubFiles").innerHTML =
-                "<div style='color:#666; padding:10px;'>SRT 또는 TXT 파일이 없습니다.</div>";
-            return;
+        if(githubToken){
+            console.log("Token 발견:", githubToken.substring(0, 10) + "...");
+            loadGithubRepos(githubToken);
         }
 
-        document.getElementById("githubFiles").innerHTML =
-            "<h3>📄 자막 파일 선택</h3>" +
-            srtList.map(f => `<button class="fileBtn" data-url="${f.download_url}" style="margin:5px; padding:8px 12px; background:#10b981; color:white; border:none; border-radius:6px; cursor:pointer;">${f.name}</button>`).join("");
+        async function loadGithubRepos(token){
+            try {
+                console.log("GitHub 저장소 로딩 중...");
+                const res = await fetch(`${API_BASE_URL}/api/github/repos?token=${token}`);
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                }
+                
+                const repos = await res.json();
+                console.log("저장소 목록:", repos);
 
-        document.querySelectorAll(".fileBtn").forEach(btn=>{
-            btn.addEventListener("click", async () => {  // async 추가
-                console.log("파일 선택:", btn.dataset.url);
-                await loadSubtitleFromGithub(btn.dataset.url);
-            });
-        });
-    } catch (error) {
-        console.error("파일 목록 로딩 오류:", error);
-        alert("파일 목록을 불러오는데 실패했습니다: " + error.message);
-    }
-}
+                if (!Array.isArray(repos) || repos.length === 0) {
+                    document.getElementById("githubRepos").innerHTML = 
+                        "<div style='color:#666; padding:10px;'>저장소가 없습니다.</div>";
+                    return;
+                }
 
-async function loadSubtitleFromGithub(url){
-    try {
-        console.log("자막 파일 다운로드 중:", url);
-        const res = await fetch(url);
-        
-        if (!res.ok) {
-            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-        }
-        
-        const text = await res.text();
-        console.log("파일 내용 길이:", text.length);
+                document.getElementById("githubRepos").innerHTML = 
+                    "<h3>📁 저장소 선택</h3>" +
+                    repos.map(r => `<button class="repoBtn" data-name="${r.full_name}" style="margin:5px; padding:8px 12px; background:#24292E; color:white; border:none; border-radius:6px; cursor:pointer;">${r.name}</button>`).join("");
 
-        // SRT 파일인 경우 파싱, 아니면 줄바꿈으로 분리
-        if (url.toLowerCase().endsWith('.srt')) {
-            sentences = parseSrtFile(text);  // 기존 SRT 파서 사용
-        } else {
-            sentences = text.split('\n')
-                .map(line => line.trim())
-                .filter(line => line.length > 0 && /[가-힣]/.test(line));  // 한국어 필터링
+                document.querySelectorAll(".repoBtn").forEach(btn=>{
+                    btn.addEventListener("click", async () => {
+                        console.log("저장소 선택:", btn.dataset.name);
+                        await loadRepoFiles(btn.dataset.name, token);
+                    });
+                });
+            } catch (error) {
+                console.error("저장소 로딩 오류:", error);
+                alert("GitHub 저장소를 불러오는데 실패했습니다: " + error.message);
+            }
         }
 
-        if (sentences.length === 0) {
-            alert('파일에서 한국어 문장을 찾을 수 없습니다.');
-            return;
-        }
+        async function loadRepoFiles(repoName, token){
+            try {
+                console.log("파일 목록 로딩 중:", repoName);
+                const res = await fetch(`${API_BASE_URL}/api/github/files?repo=${repoName}&token=${token}`);
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                }
+                
+                const files = await res.json();
+                console.log("파일 목록:", files);
 
-        displaySentenceList();
-        statusEl.textContent = `상태: ${sentences.length}개 자막 로드됨 (GitHub)`;
-        console.log("자막 로딩 완료:", sentences.length + "개");
-    } catch (error) {
-        console.error("자막 로딩 오류:", error);
-        alert("자막 파일을 불러오는데 실패했습니다: " + error.message);
-    }
-}
+                const srtList = files.filter(f => f.name && (f.name.endsWith(".srt") || f.name.endsWith(".txt")));
 
-    </script>
-</body>
-
-</html>
+                if
