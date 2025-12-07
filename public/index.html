@@ -1,344 +1,354 @@
 <!doctype html>
 <html lang="ko">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>한국어→일본어 자동 번역 + 독음 분석기</title>
     <style>
-:root {
-    --highlight-color-start: #ffd54f;
-    --highlight-color-end: #ffb300;
-    --highlight-shadow: rgba(255, 179, 0, 0.3);
-}
+        :root {
+            --highlight-color-start: #ffd54f;
+            --highlight-color-end: #ffb300;
+            --highlight-shadow: rgba(255, 179, 0, 0.3);
+        }
 
-body {
-    font-family: system-ui, -apple-system, "Noto Sans JP", "Noto Sans KR", Arial;
-    padding: 18px;
-    background: #f6f8fb;
-    color: #111;
-}
+        body {
+            font-family: system-ui, -apple-system, "Noto Sans JP", "Noto Sans KR", Arial;
+            padding: 18px;
+            background: #f6f8fb;
+            color: #111;
+        }
 
-.panel {
-    max-width: 980px;
-    margin: 0 auto 20px;
-    background: #fff;
-    padding: 24px;
-    border-radius: 12px;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-}
+        .panel {
+            max-width: 980px;
+            margin: 0 auto 20px;
+            background: #fff;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+        }
 
-h2 {
-    margin-top: 0;
-    color: #2b7cff;
-}
+        h2 {
+            margin-top: 0;
+            color: #2b7cff;
+        }
 
-label {
-    display: block;
-    margin-top: 12px;
-    font-weight: 600;
-    color: #333;
-}
+        label {
+            display: block;
+            margin-top: 12px;
+            font-weight: 600;
+            color: #333;
+        }
 
-textarea {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid #ddd;
-    font-size: 15px;
-    font-family: inherit;
-}
+        textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 15px;
+            font-family: inherit;
+        }
 
-.controls {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    margin-top: 14px;
-    flex-wrap: wrap;
-}
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 14px;
+            flex-wrap: wrap;
+        }
 
-button {
-    padding: 10px 16px;
-    border-radius: 8px;
-    border: 0;
-    background: #2b7cff;
-    color: #fff;
-    cursor: pointer;
-    font-weight: 600;
-    transition: background .2s;
-}
+        button {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 0;
+            background: #2b7cff;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background .2s;
+        }
 
-button:hover {
-    background: #1a5fd9;
-}
+        button:hover {
+            background: #1a5fd9;
+        }
 
-button:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-}
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
 
-.btn-secondary {
-    background: #666;
-}
+        .btn-secondary {
+            background: #666;
+        }
 
-.btn-secondary:hover {
-    background: #555;
-}
+        .btn-secondary:hover {
+            background: #555;
+        }
 
-.preview {
-    margin-top: 20px;
-    min-height: 160px;
-    padding: 24px;
-    border-radius: 12px;
-    background: #0b1220;
-    color: #fff;
-    font-size: 42px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    line-height: 1.6;
-}
+        .preview {
+            margin-top: 20px;
+            min-height: 160px;
+            padding: 24px;
+            border-radius: 12px;
+            background: #0b1220;
+            color: #fff;
+            font-size: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            line-height: 1.6;
+        }
 
-.word {
-    display: inline-block;
-    margin: 0 8px 8px 0;
-    opacity: 0.08;
-    transition: opacity .3s, transform .3s;
-    transform: translateY(8px);
-    white-space: nowrap;
-}
+        .word {
+            display: inline-block;
+            margin: 0 8px 8px 0;
+            opacity: 0.08;
+            transition: opacity .3s, transform .3s;
+            transform: translateY(8px);
+            white-space: nowrap;
+        }
 
-.word.revealed {
-    opacity: 1;
-    transform: none;
-}
+        .word.revealed {
+            opacity: 1;
+            transform: none;
+        }
 
-ruby {
-    font-size: 1em;
-    line-height: 1;
-}
+        ruby {
+            font-size: 1em;
+            line-height: 1;
+        }
 
-rt {
-    font-size: 0.36em;
-    display: block;
-    line-height: 1.2;
-    margin-bottom: 6px;
-    color: #ffd;
-    font-weight: 400;
-}
+        rt {
+            font-size: 0.36em;
+            display: block;
+            line-height: 1.2;
+            margin-bottom: 6px;
+            color: #ffd;
+            font-weight: 400;
+        }
 
-.hint {
-    font-size: 13px;
-    color: #666;
-    margin-top: 10px;
-    line-height: 1.5;
-}
+        .hint {
+            font-size: 13px;
+            color: #666;
+            margin-top: 10px;
+            line-height: 1.5;
+        }
 
-.status {
-    font-size: 14px;
-    color: #2b7cff;
-    margin-top: 12px;
-    font-weight: 500;
-}
+        .status {
+            font-size: 14px;
+            color: #2b7cff;
+            margin-top: 12px;
+            font-weight: 500;
+        }
 
-.small {
-    font-size: 12px;
-    color: #999;
-    margin-top: 10px;
-}
+        .small {
+            font-size: 12px;
+            color: #999;
+            margin-top: 10px;
+        }
 
-.danger {
-    color: #d32f2f;
-}
+        .danger {
+            color: #d32f2f;
+        }
 
-.translation-box {
-    margin-top: 20px;
-    padding: 16px;
-    background: #f0f9ff;
-    border-radius: 8px;
-    border-left: 4px solid #0ea5e9;
-}
+        .translation-box {
+            margin-top: 20px;
+            padding: 16px;
+            background: #f0f9ff;
+            border-radius: 8px;
+            border-left: 4px solid #0ea5e9;
+        }
 
-.translation-label {
-    font-weight: 700;
-    color: #0369a1;
-    margin-bottom: 8px;
-    font-size: 14px;
-}
+        .translation-label {
+            font-weight: 700;
+            color: #0369a1;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
 
-.translation-text {
-    font-size: 18px;
-    font-weight: 600;
-    color: #1a237e;
-    font-family: 'Noto Sans JP', sans-serif;
-    line-height: 1.6;
-}
+        .translation-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a237e;
+            font-family: 'Noto Sans JP', sans-serif;
+            line-height: 1.6;
+        }
 
-.cumulative-section {
-    margin-top: 24px;
-    padding: 20px;
-    background: #fff9f0;
-    border-radius: 10px;
-    border: 1px solid #ffe0b2;
-}
+        .cumulative-section {
+            margin-top: 24px;
+            padding: 20px;
+            background: #fff9f0;
+            border-radius: 10px;
+            border: 1px solid #ffe0b2;
+        }
 
-.cumulative-section h3 {
-    margin: 0 0 16px 0;
-    color: #e65100;
-    font-size: 17px;
-    font-weight: 700;
-}
+        .cumulative-section h3 {
+            margin: 0 0 16px 0;
+            color: #e65100;
+            font-size: 17px;
+            font-weight: 700;
+        }
 
-.cumulative-item {
-    padding: 16px;
-    margin-bottom: 16px;
-    background: #fff;
-    border-radius: 8px;
-    border-left: 4px solid #ff9800;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
-    opacity: 0;
-    animation: fadeIn 0.4s forwards;
-}
+        .cumulative-item {
+            padding: 16px;
+            margin-bottom: 16px;
+            background: #fff;
+            border-radius: 8px;
+            border-left: 4px solid #ff9800;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+            opacity: 0;
+            animation: fadeIn 0.4s forwards;
+        }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
 
-.cumulative-jp {
-    font-size: 18px;
-    font-weight: 600;
-    color: #1a237e;
-    margin-bottom: 6px;
-    font-family: 'Noto Sans JP', sans-serif;
-    line-height: 1.5;
-}
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-.cumulative-detail {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 4px;
-    font-size: 14px;
-    line-height: 1.6;
-}
+        .cumulative-jp {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a237e;
+            margin-bottom: 6px;
+            font-family: 'Noto Sans JP', sans-serif;
+            line-height: 1.5;
+        }
 
-.new-word {
-    background: linear-gradient(120deg, var(--highlight-color-start) 0%, var(--highlight-color-end) 100%);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: 700;
-    color: #1a237e;
-    box-shadow: 0 2px 4px var(--highlight-shadow);
-    animation: highlight 0.6s ease-in-out;
-}
+        .cumulative-detail {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 4px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
 
-@keyframes highlight {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-}
+        .new-word {
+            background: linear-gradient(120deg, var(--highlight-color-start) 0%, var(--highlight-color-end) 100%);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            color: #1a237e;
+            box-shadow: 0 2px 4px var(--highlight-shadow);
+            animation: highlight 0.6s ease-in-out;
+        }
 
-.result-summary-section {
-    margin-top: 24px;
-    padding: 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
+        @keyframes highlight {
 
-.result-summary-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
+            0%,
+            100% {
+                transform: scale(1);
+            }
 
-.result-summary-header h3 {
-    margin: 0;
-    color: #fff;
-    font-size: 18px;
-    font-weight: 700;
-}
+            50% {
+                transform: scale(1.05);
+            }
+        }
 
-.result-summary-content {
-    background: rgba(255, 255, 255, 0.95);
-    padding: 20px;
-    border-radius: 8px;
-}
+        .result-summary-section {
+            margin-top: 24px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
 
-.final-result {
-    margin-bottom: 16px;
-}
+        .result-summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
 
-.final-result-label {
-    font-weight: 700;
-    color: #667eea;
-    margin-bottom: 8px;
-    font-size: 14px;
-}
+        .result-summary-header h3 {
+            margin: 0;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 700;
+        }
 
-.final-result-text {
-    font-size: 20px;
-    font-weight: 600;
-    color: #1a237e;
-    font-family: 'Noto Sans JP', sans-serif;
-    line-height: 1.6;
-    margin-bottom: 8px;
-}
+        .result-summary-content {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 8px;
+        }
 
-.sentence-list-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 10px;
-    max-height: 400px;
-    overflow-y: auto;
-    padding: 4px;
-}
+        .final-result {
+            margin-bottom: 16px;
+        }
 
-.sentence-item {
-    padding: 12px 16px;
-    background: #fff;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 2px solid #e0e0e0;
-    font-size: 15px;
-    color: #333;
-    line-height: 1.5;
-}
+        .final-result-label {
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
 
-.sentence-item:hover {
-    background: #f0f9ff;
-    border-color: #10b981;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.2);
-}
+        .final-result-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1a237e;
+            font-family: 'Noto Sans JP', sans-serif;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
 
-.sentence-item.selected {
-    background: #10b981;
-    color: #fff;
-    border-color: #10b981;
-    font-weight: 600;
-}
+        .sentence-list-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 4px;
+        }
 
-input[type="file"] {
-    padding: 10px;
-    border: 2px dashed #10b981;
-    border-radius: 8px;
-    background: #f0fdf4;
-    cursor: pointer;
-    width: 100%;
-    box-sizing: border-box;
-    margin-bottom: 8px;
-}
+        .sentence-item {
+            padding: 12px 16px;
+            background: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid #e0e0e0;
+            font-size: 15px;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .sentence-item:hover {
+            background: #f0f9ff;
+            border-color: #10b981;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.2);
+        }
+
+        .sentence-item.selected {
+            background: #10b981;
+            color: #fff;
+            border-color: #10b981;
+            font-weight: 600;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            border: 2px dashed #10b981;
+            border-radius: 8px;
+            background: #f0fdf4;
+            cursor: pointer;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 8px;
+        }
     </style>
 </head>
+
 <body>
     <div class="panel" id="sentencePanel" style="display:none;">
         <h2 style="color: #10b981;">📋 문장 목록</h2>
@@ -404,295 +414,348 @@ input[type="file"] {
     </div>
 
     <script>
-const API_BASE_URL = 'https://fur-qar7.onrender.com';
+        const API_BASE_URL = 'https://fur-qar7.onrender.com';
 
-let wordSpans = [];
-let apiResultData = [];
-let sentences = [];
-let selectedSentenceIndex = -1;
+        let wordSpans = [];
+        let apiResultData = [];
+        let sentences = [];
+        let selectedSentenceIndex = -1;
 
-const statusEl = document.getElementById('status');
-const koreanEl = document.getElementById('korean');
-const preview = document.getElementById('preview');
-const translateBtn = document.getElementById('translateBtn');
-const clearBtn = document.getElementById('clear');
-const cumulativeSection = document.getElementById('cumulativeSection');
-const cumulativeList = document.getElementById('cumulativeList');
-const resultSummarySection = document.getElementById('resultSummarySection');
-const fileInput = document.getElementById('fileInput');
-const sentenceList = document.getElementById('sentenceList');
-const sentencePanel = document.getElementById('sentencePanel');
-const translationBox = document.getElementById('translationBox');
-const translatedText = document.getElementById('translatedText');
+        const statusEl = document.getElementById('status');
+        const koreanEl = document.getElementById('korean');
+        const preview = document.getElementById('preview');
+        const translateBtn = document.getElementById('translateBtn');
+        const clearBtn = document.getElementById('clear');
+        const cumulativeSection = document.getElementById('cumulativeSection');
+        const cumulativeList = document.getElementById('cumulativeList');
+        const resultSummarySection = document.getElementById('resultSummarySection');
+        const fileInput = document.getElementById('fileInput');
+        const sentenceList = document.getElementById('sentenceList');
+        const sentencePanel = document.getElementById('sentencePanel');
+        const translationBox = document.getElementById('translationBox');
+        const translatedText = document.getElementById('translatedText');
 
-translateBtn.addEventListener('click', handleTranslate);
-clearBtn.addEventListener('click', handleClear);
-fileInput.addEventListener('change', handleFileUpload);
+        translateBtn.addEventListener('click', handleTranslate);
+        clearBtn.addEventListener('click', handleClear);
+        fileInput.addEventListener('change', handleFileUpload);
 
-async function handleTranslate() {
-    const koreanText = koreanEl.value.trim();
-    if (!koreanText) {
-        statusEl.textContent = '상태: 한국어 문장을 입력하세요.';
-        return;
-    }
-
-    statusEl.textContent = '상태: 한국어→일본어 번역 중... ⏳';
-    translateBtn.disabled = true;
-
-    try {
-        const resp = await fetch(`${API_BASE_URL}/api/translate-kr-to-jp`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: koreanText })
-        });
-
-        const responseText = await resp.text();
-
-        if (!resp.ok) {
-            let errorMessage = `${resp.status} ${resp.statusText}`;
-            try {
-                const error = JSON.parse(responseText);
-                errorMessage = error.error || errorMessage;
-            } catch (e) {
-                errorMessage = `서버 오류 (${resp.status})`;
+        async function handleTranslate() {
+            const koreanText = koreanEl.value.trim();
+            if (!koreanText) {
+                statusEl.textContent = '상태: 한국어 문장을 입력하세요.';
+                return;
             }
-            throw new Error(errorMessage);
+
+            statusEl.textContent = '상태: 한국어→일본어 번역 중... ⏳';
+            translateBtn.disabled = true;
+
+            try {
+                const resp = await fetch(`${API_BASE_URL}/api/translate-kr-to-jp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: koreanText })
+                });
+
+                const responseText = await resp.text();
+
+                if (!resp.ok) {
+                    let errorMessage = `${resp.status} ${resp.statusText}`;
+                    try {
+                        const error = JSON.parse(responseText);
+                        errorMessage = error.error || errorMessage;
+                    } catch (e) {
+                        errorMessage = `서버 오류 (${resp.status})`;
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                const data = JSON.parse(responseText);
+
+                translatedText.textContent = data.translatedText;
+                translationBox.style.display = 'block';
+
+                buildFromApiResult(data.analysis, koreanText, data.translatedText);
+                statusEl.textContent = '상태: 번역 및 분석 완료! ✓';
+
+                // TTS 재생 시퀀스: 한글 1번 -> 일본어 2번
+                try {
+                    statusEl.textContent = '상태: 오디오 재생 중... (KR)';
+                    await playAudio(koreanText, 'ko');
+
+                    await new Promise(r => setTimeout(r, 500)); // 간격
+
+                    statusEl.textContent = '상태: 오디오 재생 중... (JP 1/2)';
+                    await playAudio(data.translatedText, 'ja');
+
+                    await new Promise(r => setTimeout(r, 500)); // 간격
+
+                    statusEl.textContent = '상태: 오디오 재생 중... (JP 2/2)';
+                    await playAudio(data.translatedText, 'ja');
+
+                    statusEl.textContent = '상태: 모든 작업 완료!';
+                } catch (e) {
+                    console.error('Audio playback error:', e);
+                    statusEl.textContent = '상태: 오디오 재생 실패 (번역은 완료됨)';
+                }
+            } catch (err) {
+                console.error(err);
+                statusEl.textContent = '상태: 번역 실패 ✖';
+                statusEl.className = 'status danger';
+                alert('번역 API 호출 실패:\n' + (err.message || err));
+            } finally {
+                translateBtn.disabled = false;
+                statusEl.className = 'status';
+            }
         }
 
-        const data = JSON.parse(responseText);
-        
-        translatedText.textContent = data.translatedText;
-        translationBox.style.display = 'block';
-        
-        buildFromApiResult(data.analysis, koreanText, data.translatedText);
-        statusEl.textContent = '상태: 번역 및 분석 완료! ✓';
-    } catch (err) {
-        console.error(err);
-        statusEl.textContent = '상태: 번역 실패 ✖';
-        statusEl.className = 'status danger';
-        alert('번역 API 호출 실패:\n' + (err.message || err));
-    } finally {
-        translateBtn.disabled = false;
-        statusEl.className = 'status';
-    }
-}
+        function buildFromApiResult(arr, koreanOriginal, japaneseTranslation) {
+            clearPreview();
 
-function buildFromApiResult(arr, koreanOriginal, japaneseTranslation) {
-    clearPreview();
+            if (!Array.isArray(arr) || arr.length === 0) {
+                statusEl.textContent = '상태: 변환 결과가 비어 있습니다.';
+                preview.innerHTML = '<div style="opacity:0.5;font-size:18px;">결과 없음</div>';
+                return;
+            }
 
-    if (!Array.isArray(arr) || arr.length === 0) {
-        statusEl.textContent = '상태: 변환 결과가 비어 있습니다.';
-        preview.innerHTML = '<div style="opacity:0.5;font-size:18px;">결과 없음</div>';
-        return;
-    }
+            apiResultData = arr;
 
-    apiResultData = arr;
+            arr.forEach((seg, idx) => {
+                const sp = document.createElement('span');
+                sp.className = 'word revealed';
+                sp.dataset.index = idx;
 
-    arr.forEach((seg, idx) => {
-        const sp = document.createElement('span');
-        sp.className = 'word revealed';
-        sp.dataset.index = idx;
+                const rb = document.createElement('ruby');
+                rb.textContent = seg.jp;
 
-        const rb = document.createElement('ruby');
-        rb.textContent = seg.jp;
+                const rt = document.createElement('rt');
+                const read = seg.read || '';
+                const kr = seg.kr || '';
+                rt.textContent = read + (read && kr ? '｜' : '') + kr;
 
-        const rt = document.createElement('rt');
-        const read = seg.read || '';
-        const kr = seg.kr || '';
-        rt.textContent = read + (read && kr ? '｜' : '') + kr;
+                if (rt.textContent) rb.appendChild(rt);
+                sp.appendChild(rb);
+                preview.appendChild(sp);
+                wordSpans.push(sp);
+            });
 
-        if (rt.textContent) rb.appendChild(rt);
-        sp.appendChild(rb);
-        preview.appendChild(sp);
-        wordSpans.push(sp);
-    });
+            buildCumulativeResults(arr);
+            updateFinalResult(arr, koreanOriginal, japaneseTranslation);
+        }
 
-    buildCumulativeResults(arr);
-    updateFinalResult(arr, koreanOriginal, japaneseTranslation);
-}
+        function buildCumulativeResults(arr) {
+            cumulativeList.innerHTML = '';
 
-function buildCumulativeResults(arr) {
-    cumulativeList.innerHTML = '';
+            arr.forEach((item, idx) => {
+                const div = document.createElement('div');
+                div.className = 'cumulative-item';
+                div.style.animationDelay = `${idx * 0.1}s`;
 
-    arr.forEach((item, idx) => {
-        const div = document.createElement('div');
-        div.className = 'cumulative-item';
-        div.style.animationDelay = `${idx * 0.1}s`;
-
-        // 1. Meaning (뜻)
-        const meaningDiv = document.createElement('div');
-        meaningDiv.className = 'cumulative-detail';
-        meaningDiv.innerHTML = `
+                // 1. Meaning (뜻)
+                const meaningDiv = document.createElement('div');
+                meaningDiv.className = 'cumulative-detail';
+                meaningDiv.innerHTML = `
             <div style="margin-bottom: 4px;">
                 <span style="color: #0277bd; font-weight: 500;">뜻: ${item.meaning || ''}</span>
             </div>
         `;
-        div.appendChild(meaningDiv);
+                div.appendChild(meaningDiv);
 
-        // 2. Pronunciation (발음)
-        const pronDiv = document.createElement('div');
-        pronDiv.className = 'cumulative-detail';
-        pronDiv.innerHTML = `
+                // 2. Pronunciation (발음)
+                const pronDiv = document.createElement('div');
+                pronDiv.className = 'cumulative-detail';
+                pronDiv.innerHTML = `
             <div style="margin-bottom: 6px;">
                 <span style="color: #d32f2f; font-weight: 600;">발음: ${item.kr || ''}</span>
             </div>
         `;
-        div.appendChild(pronDiv);
+                div.appendChild(pronDiv);
 
-        // 3. Japanese Word (일본어 단어)
-        const jpText = document.createElement('div');
-        jpText.className = 'cumulative-jp';
-        jpText.innerHTML = `<span class="new-word">${item.jp}</span>`;
-        div.appendChild(jpText);
+                // 3. Japanese Word (일본어 단어)
+                const jpText = document.createElement('div');
+                jpText.className = 'cumulative-jp';
+                jpText.innerHTML = `<span class="new-word">${item.jp}</span>`;
+                div.appendChild(jpText);
 
-        // 4. Hiragana (히라가나)
-        const hiraganaDiv = document.createElement('div');
-        hiraganaDiv.className = 'cumulative-detail';
-        hiraganaDiv.innerHTML = `
+                // 4. Hiragana (히라가나)
+                const hiraganaDiv = document.createElement('div');
+                hiraganaDiv.className = 'cumulative-detail';
+                hiraganaDiv.innerHTML = `
             <div>
                 <span style="color: #5e35b1; font-weight: 600;">히라가나: ${item.read || ''}</span>
             </div>
         `;
-        div.appendChild(hiraganaDiv);
+                div.appendChild(hiraganaDiv);
 
-        cumulativeList.appendChild(div);
-    });
+                cumulativeList.appendChild(div);
+            });
 
-    cumulativeSection.style.display = 'block';
-}
+            cumulativeSection.style.display = 'block';
+        }
 
-function updateFinalResult(arr, koreanOriginal, japaneseTranslation) {
-    if (!arr || arr.length === 0) return;
+        function updateFinalResult(arr, koreanOriginal, japaneseTranslation) {
+            if (!arr || arr.length === 0) return;
 
-    document.getElementById('finalKorean').textContent = koreanOriginal;
-    
-    const pronunciations = arr.map(item => item.kr).join(' ');
-    document.getElementById('finalKr').textContent = pronunciations;
-    
-    document.getElementById('finalJp').textContent = japaneseTranslation;
+            document.getElementById('finalKorean').textContent = koreanOriginal;
 
-    const readingsWithSlash = arr.map(item => item.read).join('/');
-    document.getElementById('finalRead').textContent = readingsWithSlash;
+            const pronunciations = arr.map(item => item.kr).join(' ');
+            document.getElementById('finalKr').textContent = pronunciations;
 
-    resultSummarySection.style.display = 'block';
-}
+            document.getElementById('finalJp').textContent = japaneseTranslation;
 
-function clearPreview() {
-    preview.innerHTML = '';
-    wordSpans = [];
-    cumulativeSection.style.display = 'none';
-    cumulativeList.innerHTML = '';
-    resultSummarySection.style.display = 'none';
-    translationBox.style.display = 'none';
-    apiResultData = [];
-}
+            const readingsWithSlash = arr.map(item => item.read).join('/');
+            document.getElementById('finalRead').textContent = readingsWithSlash;
 
-function handleClear() {
-    koreanEl.value = '';
-    clearPreview();
-    statusEl.textContent = '상태: 초기화됨';
-}
+            resultSummarySection.style.display = 'block';
+        }
 
-function parseSrtFile(text) {
-    const lines = text.split(/\r?\n|\r/);
-    const sentences = [];
-    let currentText = '';
+        function clearPreview() {
+            preview.innerHTML = '';
+            wordSpans = [];
+            cumulativeSection.style.display = 'none';
+            cumulativeList.innerHTML = '';
+            resultSummarySection.style.display = 'none';
+            translationBox.style.display = 'none';
+            apiResultData = [];
+        }
 
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
+        function handleClear() {
+            koreanEl.value = '';
+            clearPreview();
+            statusEl.textContent = '상태: 초기화됨';
+        }
 
-        if (!line || /^\d+$/.test(line) || /\d{2}:\d{2}:\d{2}/.test(line)) {
+        function parseSrtFile(text) {
+            const lines = text.split(/\r?\n|\r/);
+            const sentences = [];
+            let currentText = '';
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+
+                if (!line || /^\d+$/.test(line) || /\d{2}:\d{2}:\d{2}/.test(line)) {
+                    if (currentText && /[가-힣]/.test(currentText)) {
+                        sentences.push(currentText.trim());
+                        currentText = '';
+                    }
+                    continue;
+                }
+
+                if (/[가-힣]/.test(line)) {
+                    if (currentText) {
+                        currentText += ' ' + line;
+                    } else {
+                        currentText = line;
+                    }
+                }
+            }
+
             if (currentText && /[가-힣]/.test(currentText)) {
                 sentences.push(currentText.trim());
-                currentText = '';
             }
-            continue;
+
+            return sentences;
         }
 
-        if (/[가-힣]/.test(line)) {
-            if (currentText) {
-                currentText += ' ' + line;
-            } else {
-                currentText = line;
+        async function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+
+                if (file.name.endsWith('.srt')) {
+                    sentences = parseSrtFile(text);
+                } else {
+                    sentences = text.split('\n')
+                        .map(line => line.trim())
+                        .filter(line => line.length > 0)
+                        .filter(line => /[가-힣]/.test(line));
+                }
+
+                if (sentences.length === 0) {
+                    alert('파일에서 한국어 문장을 찾을 수 없습니다.');
+                    return;
+                }
+
+                displaySentenceList();
+                statusEl.textContent = `상태: ${sentences.length}개의 문장을 불러왔습니다.`;
+
+            } catch (error) {
+                console.error('파일 읽기 오류:', error);
+                alert('파일을 읽는 중 오류가 발생했습니다.');
             }
         }
-    }
 
-    if (currentText && /[가-힣]/.test(currentText)) {
-        sentences.push(currentText.trim());
-    }
+        function displaySentenceList() {
+            sentenceList.innerHTML = '';
 
-    return sentences;
-}
+            sentences.forEach((sentence, index) => {
+                const div = document.createElement('div');
+                div.className = 'sentence-item';
+                div.textContent = `${index + 1}. ${sentence}`;
+                div.dataset.index = index;
 
-async function handleFileUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+                div.addEventListener('click', () => {
+                    selectSentence(index);
+                });
 
-    try {
-        const text = await file.text();
+                sentenceList.appendChild(div);
+            });
 
-        if (file.name.endsWith('.srt')) {
-            sentences = parseSrtFile(text);
-        } else {
-            sentences = text.split('\n')
-                .map(line => line.trim())
-                .filter(line => line.length > 0)
-                .filter(line => /[가-힣]/.test(line));
+            sentencePanel.style.display = 'block';
+            sentencePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        if (sentences.length === 0) {
-            alert('파일에서 한국어 문장을 찾을 수 없습니다.');
-            return;
+        function selectSentence(index) {
+            selectedSentenceIndex = index;
+            koreanEl.value = sentences[index];
+
+            document.querySelectorAll('.sentence-item').forEach((item, i) => {
+                if (i === index) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+
+            clearPreview();
+            statusEl.textContent = `상태: 문장 #${index + 1} 선택됨`;
+
+            koreanEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            koreanEl.focus();
         }
 
-        displaySentenceList();
-        statusEl.textContent = `상태: ${sentences.length}개의 문장을 불러왔습니다.`;
+        async function playAudio(text, lang) {
+            try {
+                const resp = await fetch(`${API_BASE_URL}/api/tts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, lang })
+                });
 
-    } catch (error) {
-        console.error('파일 읽기 오류:', error);
-        alert('파일을 읽는 중 오류가 발생했습니다.');
-    }
-}
+                if (!resp.ok) throw new Error('TTS Failed');
 
-function displaySentenceList() {
-    sentenceList.innerHTML = '';
+                const blob = await resp.blob();
+                const url = URL.createObjectURL(blob);
+                const audio = new Audio(url);
 
-    sentences.forEach((sentence, index) => {
-        const div = document.createElement('div');
-        div.className = 'sentence-item';
-        div.textContent = `${index + 1}. ${sentence}`;
-        div.dataset.index = index;
-
-        div.addEventListener('click', () => {
-            selectSentence(index);
-        });
-
-        sentenceList.appendChild(div);
-    });
-
-    sentencePanel.style.display = 'block';
-    sentencePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function selectSentence(index) {
-    selectedSentenceIndex = index;
-    koreanEl.value = sentences[index];
-
-    document.querySelectorAll('.sentence-item').forEach((item, i) => {
-        if (i === index) {
-            item.classList.add('selected');
-        } else {
-            item.classList.remove('selected');
+                return new Promise((resolve, reject) => {
+                    audio.onended = () => {
+                        URL.revokeObjectURL(url);
+                        resolve();
+                    };
+                    audio.onerror = (e) => {
+                        URL.revokeObjectURL(url);
+                        reject(e);
+                    };
+                    audio.play().catch(reject);
+                });
+            } catch (e) {
+                console.error(e);
+                throw e;
+            }
         }
-    });
-
-    clearPreview();
-    statusEl.textContent = `상태: 문장 #${index + 1} 선택됨`;
-
-    koreanEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    koreanEl.focus();
-}
     </script>
 </body>
+
 </html>
