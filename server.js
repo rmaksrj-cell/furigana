@@ -24,38 +24,22 @@ import fetch from "node-fetch";
 // 1) OAuth code → token 변환
 app.get("/auth", async (req, res)=>{
     const { code } = req.query;
-    
-    if(!code){
-        return res.redirect('/');
-    }
 
-    try {
-        const response = await fetch("https://github.com/login/oauth/access_token",{
-            method: "POST",
-            headers:{
-                "Content-Type":"application/json",
-                "Accept":"application/json"
-            },
-            body:JSON.stringify({
-                client_id: process.env.GITHUB_CLIENT_ID,
-                client_secret: process.env.GITHUB_CLIENT_SECRET,
-                code
-            })
-        });
+    const response = await fetch("https://github.com/login/oauth/access_token",{
+        method: "POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Accept":"application/json"
+        },
+        body:JSON.stringify({
+            client_id: process.env.GITHUB_CLIENT_ID,
+            client_secret: process.env.GITHUB_CLIENT_SECRET,
+            code
+        })
+    });
 
-        const data = await response.json();
-        
-        if(data.error){
-            console.error('GitHub OAuth Error:', data);
-            return res.redirect('/?error=' + data.error);
-        }
-        
-        // index.html로 리다이렉트 (public 경로 제거)
-        return res.redirect(`/?token=${data.access_token}`);
-    } catch(error){
-        console.error('Auth Error:', error);
-        return res.redirect('/?error=auth_failed');
-    }
+    const data = await response.json();
+    return res.redirect(`/public/index.html?token=${data.access_token}`);
 });
 
 // 2) 사용자 repo 목록 가져오기
