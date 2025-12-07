@@ -549,13 +549,14 @@ function updateFinalResult(arr, koreanOriginal, japaneseTranslation) {
     if (!arr || arr.length === 0) return;
 
     document.getElementById('finalKorean').textContent = koreanOriginal;
+    
+    const pronunciations = arr.map(item => item.kr).join(' ');
+    document.getElementById('finalKr').textContent = pronunciations;
+    
     document.getElementById('finalJp').textContent = japaneseTranslation;
 
     const readingsWithSlash = arr.map(item => item.read).join('/');
     document.getElementById('finalRead').textContent = readingsWithSlash;
-
-    const pronunciations = arr.map(item => item.kr).join(' ');
-    document.getElementById('finalKr').textContent = pronunciations;
 
     resultSummarySection.style.display = 'block';
 }
