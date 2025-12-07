@@ -1,175 +1,681 @@
 <!doctype html>
 <html lang="ko">
-
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>일본어 자동 독음(ruby) + TTS 재생</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
+    <title>한국어→일본어 자동 번역 + 독음 분석기</title>
+    <style>
+:root {
+    --highlight-color-start: #ffd54f;
+    --highlight-color-end: #ffb300;
+    --highlight-shadow: rgba(255, 179, 0, 0.3);
+}
 
+body {
+    font-family: system-ui, -apple-system, "Noto Sans JP", "Noto Sans KR", Arial;
+    padding: 18px;
+    background: #f6f8fb;
+    color: #111;
+}
+
+.panel {
+    max-width: 980px;
+    margin: 0 auto 20px;
+    background: #fff;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+h2 {
+    margin-top: 0;
+    color: #2b7cff;
+}
+
+label {
+    display: block;
+    margin-top: 12px;
+    font-weight: 600;
+    color: #333;
+}
+
+textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 15px;
+    font-family: inherit;
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 14px;
+    flex-wrap: wrap;
+}
+
+button {
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 0;
+    background: #2b7cff;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background .2s;
+}
+
+button:hover {
+    background: #1a5fd9;
+}
+
+button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: #666;
+}
+
+.btn-secondary:hover {
+    background: #555;
+}
+
+.preview {
+    margin-top: 20px;
+    min-height: 160px;
+    padding: 24px;
+    border-radius: 12px;
+    background: #0b1220;
+    color: #fff;
+    font-size: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    line-height: 1.6;
+}
+
+.word {
+    display: inline-block;
+    margin: 0 8px 8px 0;
+    opacity: 0.08;
+    transition: opacity .3s, transform .3s;
+    transform: translateY(8px);
+    white-space: nowrap;
+}
+
+.word.revealed {
+    opacity: 1;
+    transform: none;
+}
+
+ruby {
+    font-size: 1em;
+    line-height: 1;
+}
+
+rt {
+    font-size: 0.36em;
+    display: block;
+    line-height: 1.2;
+    margin-bottom: 6px;
+    color: #ffd;
+    font-weight: 400;
+}
+
+.hint {
+    font-size: 13px;
+    color: #666;
+    margin-top: 10px;
+    line-height: 1.5;
+}
+
+.status {
+    font-size: 14px;
+    color: #2b7cff;
+    margin-top: 12px;
+    font-weight: 500;
+}
+
+.small {
+    font-size: 12px;
+    color: #999;
+    margin-top: 10px;
+}
+
+.danger {
+    color: #d32f2f;
+}
+
+.translation-box {
+    margin-top: 20px;
+    padding: 16px;
+    background: #f0f9ff;
+    border-radius: 8px;
+    border-left: 4px solid #0ea5e9;
+}
+
+.translation-label {
+    font-weight: 700;
+    color: #0369a1;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.translation-text {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a237e;
+    font-family: 'Noto Sans JP', sans-serif;
+    line-height: 1.6;
+}
+
+.cumulative-section {
+    margin-top: 24px;
+    padding: 20px;
+    background: #fff9f0;
+    border-radius: 10px;
+    border: 1px solid #ffe0b2;
+}
+
+.cumulative-section h3 {
+    margin: 0 0 16px 0;
+    color: #e65100;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.cumulative-item {
+    padding: 16px;
+    margin-bottom: 16px;
+    background: #fff;
+    border-radius: 8px;
+    border-left: 4px solid #ff9800;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+    opacity: 0;
+    animation: fadeIn 0.4s forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.cumulative-jp {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a237e;
+    margin-bottom: 6px;
+    font-family: 'Noto Sans JP', sans-serif;
+    line-height: 1.5;
+}
+
+.cumulative-detail {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 4px;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.new-word {
+    background: linear-gradient(120deg, var(--highlight-color-start) 0%, var(--highlight-color-end) 100%);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    color: #1a237e;
+    box-shadow: 0 2px 4px var(--highlight-shadow);
+    animation: highlight 0.6s ease-in-out;
+}
+
+@keyframes highlight {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.result-summary-section {
+    margin-top: 24px;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.result-summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.result-summary-header h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.result-summary-content {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.final-result {
+    margin-bottom: 16px;
+}
+
+.final-result-label {
+    font-weight: 700;
+    color: #667eea;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.final-result-text {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1a237e;
+    font-family: 'Noto Sans JP', sans-serif;
+    line-height: 1.6;
+    margin-bottom: 8px;
+}
+
+.sentence-list-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 4px;
+}
+
+.sentence-item {
+    padding: 12px 16px;
+    background: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid #e0e0e0;
+    font-size: 15px;
+    color: #333;
+    line-height: 1.5;
+}
+
+.sentence-item:hover {
+    background: #f0f9ff;
+    border-color: #10b981;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.2);
+}
+
+.sentence-item.selected {
+    background: #10b981;
+    color: #fff;
+    border-color: #10b981;
+    font-weight: 600;
+}
+
+input[type="file"] {
+    padding: 10px;
+    border: 2px dashed #10b981;
+    border-radius: 8px;
+    background: #f0fdf4;
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 8px;
+}
+    </style>
+</head>
 <body>
-    <!-- 문장 목록 패널 -->
-    <div class="panel" id="sentencePanel" style="display:none; margin-bottom: 20px;">
+    <div class="panel" id="sentencePanel" style="display:none;">
         <h2 style="color: #10b981;">📋 문장 목록</h2>
         <div class="hint" style="margin-bottom: 12px;">문장을 클릭하면 아래 입력창에 자동으로 입력됩니다.</div>
         <div class="sentence-list-container" id="sentenceList"></div>
     </div>
 
     <div class="panel">
-        <h2>🇯🇵 일본어 자동 독음 + TTS 재생기</h2>
-        <div class="hint">일본어 문장을 입력하고 "자동독음 생성"을 누르면 GPT가 형태소별로 히라가나 읽기와 한국어 발음을 생성합니다.</div>
+        <h2>🇰🇷→🇯🇵 한국어→일본어 자동 번역 + 독음 분석기</h2>
+        <div class="hint">한국어 문장을 입력하고 "일본어로 번역"을 누르면 자동으로 일본어로 번역되고, 형태소별로 히라가나 읽기와 한국어 발음을 생성합니다.</div>
 
-        <label>📁 한글 자막 파일 업로드 (선택사항)</label>
-        <input type="file" id="koreanFileInput" accept=".srt,.txt">
-        <div class="hint" style="margin-top: 8px;">SRT 또는 TXT 파일을 업로드하면 한글 문장이 아래 입력창에 표시됩니다.</div>
+        <label>📁 한국어 자막 파일 업로드 (선택사항)</label>
+        <input type="file" id="fileInput" accept=".srt,.txt">
+        <div class="hint" style="margin-top: 8px;">SRT 또는 TXT 파일을 업로드하면 위에 문장 목록이 표시됩니다.</div>
 
-        <label>한글 문장 입력</label>
-        <textarea id="korean" rows="3" placeholder="예: 오늘 저녁은 무엇을 먹을까"></textarea>
-
-        <div class="controls">
-            <button id="translateBtn" style="background:#8b5cf6">🔄 일본어로 번역</button>
-        </div>
-
-        <label>📁 일본어 문장 파일 업로드 (선택사항)</label>
-        <input type="file" id="fileInput" accept=".txt,.csv">
-        <div class="hint" style="margin-top: 8px;">TXT 또는 CSV 파일을 업로드하면 위에 문장 목록이 표시됩니다.</div>
-
-        <label>일본어 문장 입력</label>
-        <textarea id="japanese" rows="3" placeholder="예: 今日の晩ご飯は何を食べようか">今日の晩ご飯は何を食べようか</textarea>
+        <label>한국어 문장 입력</label>
+        <textarea id="korean" rows="3" placeholder="예: 오늘 저녁은 무엇을 먹을까?">오늘 저녁은 무엇을 먹을까?</textarea>
 
         <div class="controls">
-            <button id="analyzeBtn">📊 문장분석</button>
-            <button id="gen">자동독음 생성</button>
-            <button id="play">▶ 브라우저 TTS</button>
-            <button id="playServer" style="background:#10b981">☁️ 서버 TTS (추천)</button>
-            <button id="pause" class="btn-secondary">⏸ 일시정지</button>
+            <button id="translateBtn">🔄 일본어로 번역</button>
             <button id="clear" class="btn-secondary">🔄 초기화</button>
         </div>
 
-        <div class="controls">
-            <div class="speed-control">
-                <label style="margin:0">재생 속도:</label>
-                <input id="rate" type="range" min="0.6" max="2.0" step="0.05" value="1.0" />
-                <span id="rateLabel">1.00x</span>
-            </div>
-        </div>
-
         <div class="status" id="status">상태: 준비됨</div>
+
+        <div id="translationBox" style="display:none" class="translation-box">
+            <div class="translation-label">🇯🇵 일본어 번역</div>
+            <div class="translation-text" id="translatedText"></div>
+        </div>
 
         <div class="preview" id="preview" aria-live="polite"></div>
 
         <div class="small">💡 출력 형식: <ruby>日本語<rt>ひらがな｜한글</rt></ruby></div>
 
-
-        <!-- 누적 결과 요약 섹션 -->
         <div class="result-summary-section" id="resultSummarySection" style="display:none">
             <div class="result-summary-header">
                 <h3>✨ 완성된 문장 결과</h3>
-                <div style="display:flex; align-items:center;">
-                    <button class="save-btn" id="saveToLibBtn" onclick="saveToLibrary()">
-                        <span>📚</span> 저장
-                    </button>
-                    <button class="toggle-btn" id="summaryToggle" onclick="toggleSummary()">▼ 펼치기</button>
-                </div>
             </div>
-            <div class="result-summary-content collapsed" id="summaryContent">
+            <div class="result-summary-content">
                 <div class="final-result">
-    <div class="final-result-label">💬 한국어 번역</div>
-    <div class="final-result-translation" id="finalTranslation"></div>
-</div>
-<div class="final-result">
-    <div class="final-result-label">📝 일본어 원문</div>
-    <div class="final-result-text" id="finalJp"></div>
-</div>
-<div class="final-result">
-    <div class="final-result-label">🇰🇷 한국어 발음</div>
-    <div class="final-result-korean" id="finalKr"></div>
-</div>
-<div class="final-result">
-    <div class="final-result-label">🔤 히라가나 읽기</div>
-    <div class="final-result-reading" id="finalRead"></div>
+                    <div class="final-result-label">🇰🇷 한국어 원문</div>
+                    <div class="final-result-text" id="finalKorean"></div>
+                </div>
+                <div class="final-result">
+                    <div class="final-result-label">🇯🇵 일본어 번역</div>
+                    <div class="final-result-text" id="finalJp"></div>
+                </div>
+                <div class="final-result">
+                    <div class="final-result-label">🔤 히라가나 읽기</div>
+                    <div class="final-result-text" id="finalRead" style="font-size: 16px; color: #5e35b1;"></div>
+                </div>
+                <div class="final-result">
+                    <div class="final-result-label">🇰🇷 한국어 발음</div>
+                    <div class="final-result-text" id="finalKr" style="font-size: 16px; color: #d32f2f;"></div>
                 </div>
             </div>
         </div>
 
-        <!-- 누적 센텐스 결과 섹션 -->
         <div class="cumulative-section" id="cumulativeSection" style="display:none">
-            <div
-                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
-                <h3 style="margin: 0;">📝 누적 센텐스 결과</h3>
-                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                    <div class="color-picker-container">
-                        <span style="font-size: 13px; font-weight: 600; color: #555;">🎨 하이라이트:</span>
-                        <div class="color-preset" data-color="yellow"
-                            style="background: linear-gradient(120deg, #ffd54f, #ffb300);" title="노란색"></div>
-                        <div class="color-preset" data-color="green"
-                            style="background: linear-gradient(120deg, #a7f3d0, #34d399);" title="초록색"></div>
-                        <div class="color-preset" data-color="blue"
-                            style="background: linear-gradient(120deg, #bfdbfe, #60a5fa);" title="파란색"></div>
-                        <div class="color-preset" data-color="pink"
-                            style="background: linear-gradient(120deg, #fbcfe8, #f472b6);" title="분홍색"></div>
-                        <div class="color-preset" data-color="purple"
-                            style="background: linear-gradient(120deg, #ddd6fe, #a78bfa);" title="보라색"></div>
-                        <input type="color" id="customColor" class="custom-color-input" title="사용자 정의 색상"
-                            value="#ffd54f">
-                    </div>
-                    <button id="slashToggle" onclick="toggleSlashes()"
-                        style="padding: 8px 16px; font-size: 14px; background: #10b981;">/ 슬래쉬 추가</button>
-                </div>
-            </div>
+            <h3>📝 단어별 분석</h3>
             <div id="cumulativeList"></div>
-        </div>
-
-        <!-- 문장 분석 섹션 -->
-        <div class="analysis-section" id="analysisSection" style="display:none">
-            <h3>📊 문장 분석</h3>
-            <div id="analysisList"></div>
-        </div>
-
-
-        <div class="meaning-section" id="meaningSection" style="display:none">
-            <h3>📖 단어 뜻 & 문장 번역</h3>
-            <div id="meaningList"></div>
-        </div>
-
-        <!-- 라이브러리 컨테이너: 예문 라이브러리 + SRT 라이브러리 -->
-        <div class="libraries-container">
-            <!-- 예문 라이브러리 섹션 -->
-            <div class="library-section" id="librarySection">
-                <div class="library-header">
-                    <h3>📚 예문 라이브러리 <span id="libCount"
-                            style="font-size:12px; background:#f3f4f6; padding:2px 8px; border-radius:12px; color:#6b7280">0</span>
-                    </h3>
-                    <button onclick="clearLibrary()" class="btn-secondary"
-                        style="padding:4px 10px; font-size:12px; background:#9ca3af;">전체 삭제</button>
-                </div>
-                <div class="library-grid" id="libraryList">
-                    <!-- 자바스크립트로 채워짐 -->
-                </div>
-            </div>
-
-            <!-- SRT 라이브러리 섹션 -->
-            <div class="srt-library-section" id="srtLibrarySection">
-                <div class="library-header">
-                    <h3>🎬 SRT 파일 라이브러리 <span id="srtLibCount"
-                            style="font-size:12px; background:#f3f4f6; padding:2px 8px; border-radius:12px; color:#6b7280">0</span>
-                    </h3>
-                    <button onclick="clearSrtLibrary()" class="btn-secondary"
-                        style="padding:4px 10px; font-size:12px; background:#9ca3af;">전체 삭제</button>
-                </div>
-                <div class="srt-upload-area">
-                    <input type="file" id="srtFileInput" accept=".srt">
-                    <div class="hint" style="margin-top: 8px;">SRT 파일을 업로드하면 자막 문장들을 추출하여 저장합니다.</div>
-                </div>
-                <div class="library-grid" id="srtLibraryList">
-                    <!-- 자바스크립트로 채워짐 -->
-                </div>
-            </div>
         </div>
     </div>
 
-    <script src="app.js?v=2.0"></script>
-</body>
+    <script>
+const API_BASE_URL = 'https://fur-qar7.onrender.com';
 
+let wordSpans = [];
+let apiResultData = [];
+let sentences = [];
+let selectedSentenceIndex = -1;
+
+const statusEl = document.getElementById('status');
+const koreanEl = document.getElementById('korean');
+const preview = document.getElementById('preview');
+const translateBtn = document.getElementById('translateBtn');
+const clearBtn = document.getElementById('clear');
+const cumulativeSection = document.getElementById('cumulativeSection');
+const cumulativeList = document.getElementById('cumulativeList');
+const resultSummarySection = document.getElementById('resultSummarySection');
+const fileInput = document.getElementById('fileInput');
+const sentenceList = document.getElementById('sentenceList');
+const sentencePanel = document.getElementById('sentencePanel');
+const translationBox = document.getElementById('translationBox');
+const translatedText = document.getElementById('translatedText');
+
+translateBtn.addEventListener('click', handleTranslate);
+clearBtn.addEventListener('click', handleClear);
+fileInput.addEventListener('change', handleFileUpload);
+
+async function handleTranslate() {
+    const koreanText = koreanEl.value.trim();
+    if (!koreanText) {
+        statusEl.textContent = '상태: 한국어 문장을 입력하세요.';
+        return;
+    }
+
+    statusEl.textContent = '상태: 한국어→일본어 번역 중... ⏳';
+    translateBtn.disabled = true;
+
+    try {
+        const resp = await fetch(`${API_BASE_URL}/api/translate-kr-to-jp`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: koreanText })
+        });
+
+        const responseText = await resp.text();
+
+        if (!resp.ok) {
+            let errorMessage = `${resp.status} ${resp.statusText}`;
+            try {
+                const error = JSON.parse(responseText);
+                errorMessage = error.error || errorMessage;
+            } catch (e) {
+                errorMessage = `서버 오류 (${resp.status})`;
+            }
+            throw new Error(errorMessage);
+        }
+
+        const data = JSON.parse(responseText);
+        
+        translatedText.textContent = data.translatedText;
+        translationBox.style.display = 'block';
+        
+        buildFromApiResult(data.analysis, koreanText, data.translatedText);
+        statusEl.textContent = '상태: 번역 및 분석 완료! ✓';
+    } catch (err) {
+        console.error(err);
+        statusEl.textContent = '상태: 번역 실패 ✖';
+        statusEl.className = 'status danger';
+        alert('번역 API 호출 실패:\n' + (err.message || err));
+    } finally {
+        translateBtn.disabled = false;
+        statusEl.className = 'status';
+    }
+}
+
+function buildFromApiResult(arr, koreanOriginal, japaneseTranslation) {
+    clearPreview();
+
+    if (!Array.isArray(arr) || arr.length === 0) {
+        statusEl.textContent = '상태: 변환 결과가 비어 있습니다.';
+        preview.innerHTML = '<div style="opacity:0.5;font-size:18px;">결과 없음</div>';
+        return;
+    }
+
+    apiResultData = arr;
+
+    arr.forEach((seg, idx) => {
+        const sp = document.createElement('span');
+        sp.className = 'word revealed';
+        sp.dataset.index = idx;
+
+        const rb = document.createElement('ruby');
+        rb.textContent = seg.jp;
+
+        const rt = document.createElement('rt');
+        const read = seg.read || '';
+        const kr = seg.kr || '';
+        rt.textContent = read + (read && kr ? '｜' : '') + kr;
+
+        if (rt.textContent) rb.appendChild(rt);
+        sp.appendChild(rb);
+        preview.appendChild(sp);
+        wordSpans.push(sp);
+    });
+
+    buildCumulativeResults(arr);
+    updateFinalResult(arr, koreanOriginal, japaneseTranslation);
+}
+
+function buildCumulativeResults(arr) {
+    cumulativeList.innerHTML = '';
+
+    arr.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'cumulative-item';
+        div.style.animationDelay = `${idx * 0.1}s`;
+
+        const jpText = document.createElement('div');
+        jpText.className = 'cumulative-jp';
+        jpText.innerHTML = `<span class="new-word">${item.jp}</span>`;
+
+        const detail = document.createElement('div');
+        detail.className = 'cumulative-detail';
+        detail.innerHTML = `
+            <div style="margin-bottom: 6px;">
+                <span style="color: #5e35b1; font-weight: 600;">읽기: ${item.read || ''}</span>
+            </div>
+            <div>
+                <span style="color: #d32f2f; font-weight: 600;">발음: ${item.kr || ''}</span>
+            </div>
+            <div style="margin-top: 6px;">
+                <span style="color: #0277bd; font-weight: 500;">뜻: ${item.meaning || ''}</span>
+            </div>
+        `;
+
+        div.appendChild(jpText);
+        div.appendChild(detail);
+        cumulativeList.appendChild(div);
+    });
+
+    cumulativeSection.style.display = 'block';
+}
+
+function updateFinalResult(arr, koreanOriginal, japaneseTranslation) {
+    if (!arr || arr.length === 0) return;
+
+    document.getElementById('finalKorean').textContent = koreanOriginal;
+    document.getElementById('finalJp').textContent = japaneseTranslation;
+
+    const readingsWithSlash = arr.map(item => item.read).join('/');
+    document.getElementById('finalRead').textContent = readingsWithSlash;
+
+    const pronunciations = arr.map(item => item.kr).join(' ');
+    document.getElementById('finalKr').textContent = pronunciations;
+
+    resultSummarySection.style.display = 'block';
+}
+
+function clearPreview() {
+    preview.innerHTML = '';
+    wordSpans = [];
+    cumulativeSection.style.display = 'none';
+    cumulativeList.innerHTML = '';
+    resultSummarySection.style.display = 'none';
+    translationBox.style.display = 'none';
+    apiResultData = [];
+}
+
+function handleClear() {
+    koreanEl.value = '';
+    clearPreview();
+    statusEl.textContent = '상태: 초기화됨';
+}
+
+function parseSrtFile(text) {
+    const lines = text.split(/\r?\n|\r/);
+    const sentences = [];
+    let currentText = '';
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+
+        if (!line || /^\d+$/.test(line) || /\d{2}:\d{2}:\d{2}/.test(line)) {
+            if (currentText && /[가-힣]/.test(currentText)) {
+                sentences.push(currentText.trim());
+                currentText = '';
+            }
+            continue;
+        }
+
+        if (/[가-힣]/.test(line)) {
+            if (currentText) {
+                currentText += ' ' + line;
+            } else {
+                currentText = line;
+            }
+        }
+    }
+
+    if (currentText && /[가-힣]/.test(currentText)) {
+        sentences.push(currentText.trim());
+    }
+
+    return sentences;
+}
+
+async function handleFileUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+        const text = await file.text();
+
+        if (file.name.endsWith('.srt')) {
+            sentences = parseSrtFile(text);
+        } else {
+            sentences = text.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .filter(line => /[가-힣]/.test(line));
+        }
+
+        if (sentences.length === 0) {
+            alert('파일에서 한국어 문장을 찾을 수 없습니다.');
+            return;
+        }
+
+        displaySentenceList();
+        statusEl.textContent = `상태: ${sentences.length}개의 문장을 불러왔습니다.`;
+
+    } catch (error) {
+        console.error('파일 읽기 오류:', error);
+        alert('파일을 읽는 중 오류가 발생했습니다.');
+    }
+}
+
+function displaySentenceList() {
+    sentenceList.innerHTML = '';
+
+    sentences.forEach((sentence, index) => {
+        const div = document.createElement('div');
+        div.className = 'sentence-item';
+        div.textContent = `${index + 1}. ${sentence}`;
+        div.dataset.index = index;
+
+        div.addEventListener('click', () => {
+            selectSentence(index);
+        });
+
+        sentenceList.appendChild(div);
+    });
+
+    sentencePanel.style.display = 'block';
+    sentencePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function selectSentence(index) {
+    selectedSentenceIndex = index;
+    koreanEl.value = sentences[index];
+
+    document.querySelectorAll('.sentence-item').forEach((item, i) => {
+        if (i === index) {
+            item.classList.add('selected');
+        } else {
+            item.classList.remove('selected');
+        }
+    });
+
+    clearPreview();
+    statusEl.textContent = `상태: 문장 #${index + 1} 선택됨`;
+
+    koreanEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    koreanEl.focus();
+}
+    </script>
+</body>
 </html>
