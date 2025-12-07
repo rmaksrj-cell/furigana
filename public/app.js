@@ -307,7 +307,7 @@ function buildCumulativeResults(arr) {
         <span class="cumulative-translation">${highlightedTrans}</span>
     </div>
     <div style="padding-left: 12px; margin-bottom: 6px;">
-        <span>${highlightedJp}</span>
+        <span class="cumulative-jp-text">${highlightedJp}</span>
     </div>
     <div style="padding-left: 12px;">
         <span>• <code>${highlightedKr}</code></span>
@@ -316,7 +316,6 @@ function buildCumulativeResults(arr) {
     </div>
 `;
 
-        div.appendChild(jpText);
         div.appendChild(detail);
         cumulativeList.appendChild(div);
     });
