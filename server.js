@@ -307,10 +307,10 @@ app.post('/api/analyze', async (req, res) => {
 
 Each element in the array should be an object with:
 {
-  "word": "<Japanese word/phrase>",
+  "meaning": "<Korean meaning/explanation>",
   "pos": "<part of speech in Korean (명사, 동사, 형용사, 조사, etc.)>",
-  "reading": "<hiragana reading>",
-  "meaning": "<Korean meaning/explanation>"
+  "word": "<Japanese word/phrase>",
+  "reading": "<hiragana reading>"
 }
 
 Rules:
@@ -324,22 +324,22 @@ Example for "今日は晴れです":
 {
   "analysis": [
     {
+      "meaning": "오늘",
+      "pos": "명사",
       "word": "今日",
-      "pos": "명사",
-      "reading": "きょう",
-      "meaning": "오늘"
+      "reading": "きょう"
     },
     {
-      "word": "は",
+      "meaning": "주제를 나타내는 조사",
       "pos": "조사",
-      "reading": "は",
-      "meaning": "주제를 나타내는 조사"
+      "word": "は",
+      "reading": "は"
     },
     {
-      "word": "晴れ",
+      "meaning": "맑음, 화창함",
       "pos": "명사",
-      "reading": "はれ",
-      "meaning": "맑음, 화창함"
+      "word": "晴れ",
+      "reading": "はれ"
     },
     {
       "word": "です",
