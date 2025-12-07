@@ -361,8 +361,13 @@
         <div class="hint">한국어 문장을 입력하고 "일본어로 번역"을 누르면 자동으로 일본어로 번역되고, 형태소별로 히라가나 읽기와 한국어 발음을 생성합니다.</div>
 
         <label>📁 한국어 자막 파일 업로드 (선택사항)</label>
-        <input type="file" id="fileInput" accept=".srt,.txt">
-        <div class="hint" style="margin-top: 8px;">SRT 또는 TXT 파일을 업로드하면 위에 문장 목록이 표시됩니다.</div>
+    <input type="file" id="fileInput" accept=".srt,.txt">
+    <div class="hint" style="margin-top: 8px;">SRT 또는 TXT 파일을 업로드하면 위에 문장 목록이 표시됩니다.</div>
+
+    <!-- 🆕 GitHub OAuth 방식 -->
+    <button id="githubLoginBtn" style="background:#24292E;">🐙 GitHub에서 자막 불러오기</button>
+    <div id="githubRepos" style="margin-top:10px;"></div>
+    <div id="githubFiles" style="margin-top:10px;"></div>
 
         <label>한국어 문장 입력</label>
         <textarea id="korean" rows="3" placeholder="예: 오늘 저녁은 무엇을 먹을까?">오늘 저녁은 무엇을 먹을까?</textarea>
