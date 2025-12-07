@@ -922,6 +922,25 @@ async function handleFileUpload(e) {
     }
 }
 
+function displaySentenceList() {
+    sentenceList.innerHTML = '';
+
+    sentences.forEach((sentence, index) => {
+        const div = document.createElement('div');
+        div.className = 'sentence-item';
+        div.innerHTML = `<span class="sentence-number">${index + 1}</span>${sentence}`;
+        div.dataset.index = index;
+
+        div.addEventListener('click', () => {
+            selectSentence(index);
+        });
+
+        sentenceList.appendChild(div);
+    });
+
+    sentencePanel.style.display = 'block';
+    sentencePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 function selectSentence(index) {
     selectedSentenceIndex = index;
     const sentence = sentences[index];
