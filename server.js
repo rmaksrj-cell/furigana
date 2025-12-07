@@ -262,6 +262,48 @@ Example for "今日は晴れです":
   }
 });
 
+// 한글→일본어 번역 엔드포인트
+app.post('/api/translate', async (req, res) => {
+  const { text } = req.body;
+
+  if (!text) {
+    return res.status(400).json({ error: 'text required' });
+  }
+
+  try {
+    const response = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a Korean to Japanese translator. Translate the given Korean text into natural, fluent Japanese.
+
+Rules:
+- Translate Korean text to natural Japanese
+- Maintain the original meaning and nuance
+- Use appropriate Japanese grammar and expressions
+- Return ONLY the translated Japanese text, no explanation, no markdown
+- Do not include any additional formatting or commentary`
+        },
+        { role: 'user', content: `Translate this Korean text to Japanese: "${text}"` }
+      ],
+      temperature: 0.3,
+      max_tokens: 1000
+    });
+
+    const japanese = response.choices[0].message.content.trim();
+
+    res.json({ japanese });
+
+  } catch (error) {
+    console.error('Translation API Error:', error);
+    res.status(500).json({
+      error: 'Failed to translate text',
+      details: error.message
+    });
+  }
+});
+
 
 // Root route
 app.get('/', (req, res) => {

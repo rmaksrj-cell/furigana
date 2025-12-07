@@ -20,6 +20,7 @@ console.log('🔧 API Configuration:', {
 // ========== DOM 요소 참조 ==========
 const statusEl = document.getElementById('status');
 const japaneseEl = document.getElementById('japanese');
+const koreanEl = document.getElementById('korean');
 const preview = document.getElementById('preview');
 const rateEl = document.getElementById('rate');
 const rateLabel = document.getElementById('rateLabel');
@@ -34,9 +35,11 @@ const cumulativeList = document.getElementById('cumulativeList');
 const resultSummarySection = document.getElementById('resultSummarySection');
 const summaryContent = document.getElementById('summaryContent');
 const fileInput = document.getElementById('fileInput');
+const koreanFileInput = document.getElementById('koreanFileInput');
 const sentenceList = document.getElementById('sentenceList');
 const sentencePanel = document.getElementById('sentencePanel');
 const analyzeBtn = document.getElementById('analyzeBtn');
+const translateBtn = document.getElementById('translateBtn');
 const analysisSection = document.getElementById('analysisSection');
 const analysisList = document.getElementById('analysisList');
 
@@ -148,7 +151,9 @@ function setupEventListeners() {
     });
     clearBtn.addEventListener('click', handleClear);
     analyzeBtn.addEventListener('click', handleAnalyze);
+    translateBtn.addEventListener('click', handleTranslate);
     fileInput.addEventListener('change', handleFileUpload);
+    koreanFileInput.addEventListener('change', handleKoreanFileUpload);
     document.getElementById('srtFileInput').addEventListener('change', handleSrtUpload);
 
     playBtn.disabled = true;
@@ -751,6 +756,66 @@ async function handleAnalyze() {
     }
 }
 
+// ========== 한글→일본어 번역 ==========
+async function callTranslateApi(koreanText) {
+    try {
+        const resp = await fetch(`${API_BASE_URL}/api/translate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: koreanText })
+        });
+
+        const responseText = await resp.text();
+
+        if (!resp.ok) {
+            let errorMessage = `${resp.status} ${resp.statusText}`;
+            try {
+                const error = JSON.parse(responseText);
+                errorMessage = error.error || errorMessage;
+            } catch (e) {
+                console.error('Server returned non-JSON response:', responseText.substring(0, 200));
+                errorMessage = `서버 오류 (${resp.status}): JSON 응답이 아님`;
+            }
+            throw new Error(errorMessage);
+        }
+
+        try {
+            const data = JSON.parse(responseText);
+            return data.japanese;
+        } catch (e) {
+            console.error('Failed to parse success response:', responseText.substring(0, 200));
+            throw new Error('서버 응답을 파싱할 수 없습니다');
+        }
+    } catch (e) {
+        throw e;
+    }
+}
+
+async function handleTranslate() {
+    const koreanText = koreanEl.value.trim();
+    if (!koreanText) {
+        statusEl.textContent = '상태: 한글 문장을 입력하세요.';
+        return;
+    }
+
+    statusEl.textContent = '상태: 한글→일본어 번역 중... ⏳';
+    translateBtn.disabled = true;
+
+    try {
+        const japanese = await callTranslateApi(koreanText);
+        japaneseEl.value = japanese;
+        statusEl.textContent = '상태: 번역 완료! ✓';
+    } catch (err) {
+        console.error(err);
+        statusEl.textContent = '상태: 번역 실패 ❌';
+        statusEl.className = 'status danger';
+        alert('번역 API 호출 실패:\n' + (err.message || err));
+    } finally {
+        translateBtn.disabled = false;
+        statusEl.className = 'status';
+    }
+}
+
 function displayAnalysis(data) {
     analysisList.innerHTML = '';
 
@@ -779,6 +844,45 @@ function displayAnalysis(data) {
     analysisSection.style.display = 'block';
 }
 
+
+// ========== 한글 파일 업로드 처리 ==========
+async function handleKoreanFileUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+        const text = await file.text();
+        let koreanText = '';
+
+        if (file.name.endsWith('.srt')) {
+            // SRT 파일 파싱: 타임코드와 번호 제거, 텍스트만 추출
+            const lines = text.split('\n');
+            const textLines = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                // 빈 줄, 숫자만 있는 줄, 타임코드 줄 제외
+                if (line &&
+                    !/^\d+$/.test(line) &&
+                    !/\d{2}:\d{2}:\d{2}/.test(line)) {
+                    textLines.push(line);
+                }
+            }
+
+            koreanText = textLines.join('\n');
+        } else {
+            // TXT 파일
+            koreanText = text.trim();
+        }
+
+        koreanEl.value = koreanText;
+        statusEl.textContent = `상태: 한글 파일 로드 완료 (${file.name})`;
+    } catch (err) {
+        console.error('File upload error:', err);
+        statusEl.textContent = '상태: 파일 로드 실패 ❌';
+        alert('파일 로드 실패:\n' + err.message);
+    }
+}
 
 // ========== 파일 업로드 처리 ==========
 async function handleFileUpload(e) {
