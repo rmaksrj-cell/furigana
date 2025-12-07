@@ -762,56 +762,127 @@
         }
         /* -------------------  GitHub OAuth + Repo File Explorer -------------------- */
 
-const GITHUB_CLIENT_ID = Ov23liLygiyWc0h5O5uU;
-const redirectUri = window.location.origin + "/auth";
+const GITHUB_CLIENT_ID = "Ov23liLygiyWc0h5O5uU";
+const redirectUri = encodeURIComponent(window.location.origin + "/auth");  // URL 인코딩 추가
 
 document.getElementById("githubLoginBtn").addEventListener("click", () => {
     const url = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=repo&redirect_uri=${redirectUri}`;
     window.location.href = url;
 });
+        
+let githubToken = null;  // 전역 변수로 선언
 
 // 로그인 후 token URL 파싱
-const token = new URLSearchParams(window.location.search).get("token");
+githubToken = new URLSearchParams(window.location.search).get("token");
 
-if(token){
-    loadGithubRepos(token);
+if(githubToken){
+    console.log("Token 발견:", githubToken.substring(0, 10) + "...");
+    loadGithubRepos(githubToken);
 }
 
 async function loadGithubRepos(token){
-    const res = await fetch("/api/github/repos?token=" + token);
-    const repos = await res.json();
+    try {
+        console.log("GitHub 저장소 로딩 중...");
+        const res = await fetch(`${API_BASE_URL}/api/github/repos?token=${token}`);  // API_BASE_URL 사용
+        
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        
+        const repos = await res.json();
+        console.log("저장소 목록:", repos);
 
-    document.getElementById("githubRepos").innerHTML = 
-        "<h3>📁 저장소 선택</h3>" +
-        repos.map(r => `<button class="repoBtn" data-name="${r.full_name}">${r.name}</button>`).join("<br>");
+        if (!Array.isArray(repos) || repos.length === 0) {
+            document.getElementById("githubRepos").innerHTML = 
+                "<div style='color:#666; padding:10px;'>저장소가 없습니다.</div>";
+            return;
+        }
 
-    document.querySelectorAll(".repoBtn").forEach(btn=>{
-        btn.addEventListener("click",()=> loadRepoFiles(btn.dataset.name));
-    });
+        document.getElementById("githubRepos").innerHTML = 
+            "<h3>📁 저장소 선택</h3>" +
+            repos.map(r => `<button class="repoBtn" data-name="${r.full_name}" style="margin:5px; padding:8px 12px; background:#24292E; color:white; border:none; border-radius:6px; cursor:pointer;">${r.name}</button>`).join("");
+
+        document.querySelectorAll(".repoBtn").forEach(btn=>{
+            btn.addEventListener("click", async () => {  // async 추가
+                console.log("저장소 선택:", btn.dataset.name);
+                await loadRepoFiles(btn.dataset.name, token);  // token 전달
+            });
+        });
+    } catch (error) {
+        console.error("저장소 로딩 오류:", error);
+        alert("GitHub 저장소를 불러오는데 실패했습니다: " + error.message);
+    }
 }
 
-async function loadRepoFiles(repoName){
-    const res = await fetch(`/api/github/files?repo=${repoName}&token=${token}`);
-    const files = await res.json();
+async function loadRepoFiles(repoName, token){  // token 파라미터 추가
+    try {
+        console.log("파일 목록 로딩 중:", repoName);
+        const res = await fetch(`${API_BASE_URL}/api/github/files?repo=${repoName}&token=${token}`);  // API_BASE_URL 사용
+        
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        
+        const files = await res.json();
+        console.log("파일 목록:", files);
 
-    const srtList = files.filter(f => f.name.endsWith(".srt") || f.name.endsWith(".txt"));
+        const srtList = files.filter(f => f.name && (f.name.endsWith(".srt") || f.name.endsWith(".txt")));
 
-    document.getElementById("githubFiles").innerHTML =
-        "<h3>📝 자막 파일 선택</h3>" +
-        srtList.map(f => `<button class="fileBtn" data-url="${f.download_url}">${f.name}</button>`).join("<br>");
+        if (srtList.length === 0) {
+            document.getElementById("githubFiles").innerHTML =
+                "<div style='color:#666; padding:10px;'>SRT 또는 TXT 파일이 없습니다.</div>";
+            return;
+        }
 
-    document.querySelectorAll(".fileBtn").forEach(btn=>{
-        btn.addEventListener("click",()=> loadSubtitleFromGithub(btn.dataset.url));
-    });
+        document.getElementById("githubFiles").innerHTML =
+            "<h3>📄 자막 파일 선택</h3>" +
+            srtList.map(f => `<button class="fileBtn" data-url="${f.download_url}" style="margin:5px; padding:8px 12px; background:#10b981; color:white; border:none; border-radius:6px; cursor:pointer;">${f.name}</button>`).join("");
+
+        document.querySelectorAll(".fileBtn").forEach(btn=>{
+            btn.addEventListener("click", async () => {  // async 추가
+                console.log("파일 선택:", btn.dataset.url);
+                await loadSubtitleFromGithub(btn.dataset.url);
+            });
+        });
+    } catch (error) {
+        console.error("파일 목록 로딩 오류:", error);
+        alert("파일 목록을 불러오는데 실패했습니다: " + error.message);
+    }
 }
 
 async function loadSubtitleFromGithub(url){
-    const res = await fetch(url);
-    const text = await res.text();
-    sentences = text.split("\n").filter(line => line.trim());
+    try {
+        console.log("자막 파일 다운로드 중:", url);
+        const res = await fetch(url);
+        
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        
+        const text = await res.text();
+        console.log("파일 내용 길이:", text.length);
 
-    displaySentenceList();
-    statusEl.textContent = `상태: ${sentences.length}개 자막 로드됨 (GitHub)`;
+        // SRT 파일인 경우 파싱, 아니면 줄바꿈으로 분리
+        if (url.toLowerCase().endsWith('.srt')) {
+            sentences = parseSrtFile(text);  // 기존 SRT 파서 사용
+        } else {
+            sentences = text.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0 && /[가-힣]/.test(line));  // 한국어 필터링
+        }
+
+        if (sentences.length === 0) {
+            alert('파일에서 한국어 문장을 찾을 수 없습니다.');
+            return;
+        }
+
+        displaySentenceList();
+        statusEl.textContent = `상태: ${sentences.length}개 자막 로드됨 (GitHub)`;
+        console.log("자막 로딩 완료:", sentences.length + "개");
+    } catch (error) {
+        console.error("자막 로딩 오류:", error);
+        alert("자막 파일을 불러오는데 실패했습니다: " + error.message);
+    }
 }
 
     </script>
