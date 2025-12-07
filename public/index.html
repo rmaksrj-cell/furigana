@@ -519,26 +519,42 @@ function buildCumulativeResults(arr) {
         div.className = 'cumulative-item';
         div.style.animationDelay = `${idx * 0.1}s`;
 
-        const jpText = document.createElement('div');
-        jpText.className = 'cumulative-jp';
-        jpText.innerHTML = `<span class="new-word">${item.jp}</span>`;
-
-        const detail = document.createElement('div');
-        detail.className = 'cumulative-detail';
-        detail.innerHTML = `
-            <div style="margin-bottom: 6px;">
-                <span style="color: #5e35b1; font-weight: 600;">읽기: ${item.read || ''}</span>
-            </div>
-            <div>
-                <span style="color: #d32f2f; font-weight: 600;">발음: ${item.kr || ''}</span>
-            </div>
-            <div style="margin-top: 6px;">
+        // 1. Meaning (뜻)
+        const meaningDiv = document.createElement('div');
+        meaningDiv.className = 'cumulative-detail';
+        meaningDiv.innerHTML = `
+            <div style="margin-bottom: 4px;">
                 <span style="color: #0277bd; font-weight: 500;">뜻: ${item.meaning || ''}</span>
             </div>
         `;
+        div.appendChild(meaningDiv);
 
+        // 2. Pronunciation (발음)
+        const pronDiv = document.createElement('div');
+        pronDiv.className = 'cumulative-detail';
+        pronDiv.innerHTML = `
+            <div style="margin-bottom: 6px;">
+                <span style="color: #d32f2f; font-weight: 600;">발음: ${item.kr || ''}</span>
+            </div>
+        `;
+        div.appendChild(pronDiv);
+
+        // 3. Japanese Word (일본어 단어)
+        const jpText = document.createElement('div');
+        jpText.className = 'cumulative-jp';
+        jpText.innerHTML = `<span class="new-word">${item.jp}</span>`;
         div.appendChild(jpText);
-        div.appendChild(detail);
+
+        // 4. Hiragana (히라가나)
+        const hiraganaDiv = document.createElement('div');
+        hiraganaDiv.className = 'cumulative-detail';
+        hiraganaDiv.innerHTML = `
+            <div>
+                <span style="color: #5e35b1; font-weight: 600;">히라가나: ${item.read || ''}</span>
+            </div>
+        `;
+        div.appendChild(hiraganaDiv);
+
         cumulativeList.appendChild(div);
     });
 
