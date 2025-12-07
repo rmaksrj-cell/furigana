@@ -37,9 +37,8 @@ app.get("/auth", async (req, res)=>{
             code
         })
     });
-
-    const data = await response.json();
-    return res.redirect(`/public/index.html?token=${data.access_token}`);
+const data = await response.json();
+    return res.redirect(`/?token=${data.access_token}`);
 });
 
 // 2) 사용자 repo 목록 가져오기
