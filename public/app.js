@@ -303,15 +303,15 @@ function buildCumulativeResults(arr) {
         const detail = document.createElement('div');
         detail.className = 'cumulative-detail';
         detail.innerHTML = `
-            <div style="margin-bottom: 6px;">
-                <span>• <code>${accumulatedTransWithSlash}</code></span>
-            </div>
-            <div style="padding-left: 12px;">
-                <span>(${highlightedKr})</span>
-                <span class="cumulative-arrow">→</span>
-                <span class="cumulative-translation">${highlightedTrans}</span>
-            </div>
-        `;
+    <div style="margin-bottom: 6px;">
+        <span class="cumulative-translation">${highlightedTrans}</span>
+    </div>
+    <div style="padding-left: 12px;">
+        <span>• <code>${accumulatedTransWithSlash}</code></span>
+        <span class="cumulative-arrow">→</span>
+        <span>(${highlightedKr})</span>
+    </div>
+`;
 
         div.appendChild(jpText);
         div.appendChild(detail);
@@ -324,16 +324,17 @@ function buildCumulativeResults(arr) {
 
 function updateFinalResult(arr) {
     if (!arr || arr.length === 0) return;
-
     const lastItem = arr[arr.length - 1];
 
+    // 1. 한글 번역
+    document.getElementById('finalTranslation').textContent = lastItem.cumulativeTranslation;
+    // 2. 일본어 원문
     document.getElementById('finalJp').textContent = lastItem.cumulativeJp;
-
+    // 3. 한글 독음
+    document.getElementById('finalKr').textContent = lastItem.cumulativeKr;
+    // 4. 히라가나 읽기
     const readingsWithSlash = arr.map(item => item.read).join('/');
     document.getElementById('finalRead').textContent = readingsWithSlash;
-
-    document.getElementById('finalKr').textContent = lastItem.cumulativeKr;
-    document.getElementById('finalTranslation').textContent = lastItem.cumulativeTranslation;
 
     resultSummarySection.style.display = 'block';
 }
@@ -852,31 +853,33 @@ async function handleKoreanFileUpload(e) {
 
     try {
         const text = await file.text();
-        let koreanText = '';
+        let koreanSentences = [];
 
         if (file.name.endsWith('.srt')) {
-            // SRT 파일 파싱: 타임코드와 번호 제거, 텍스트만 추출
             const lines = text.split('\n');
-            const textLines = [];
-
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
-                // 빈 줄, 숫자만 있는 줄, 타임코드 줄 제외
                 if (line &&
                     !/^\d+$/.test(line) &&
                     !/\d{2}:\d{2}:\d{2}/.test(line)) {
-                    textLines.push(line);
+                    koreanSentences.push(line);
                 }
             }
-
-            koreanText = textLines.join('\n');
-        } else {
-            // TXT 파일
-            koreanText = text.trim();
+        } else if (file.name.endsWith('.txt')) {
+            koreanSentences = text.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
         }
 
-        koreanEl.value = koreanText;
-        statusEl.textContent = `상태: 한글 파일 로드 완료 (${file.name})`;
+        if (koreanSentences.length === 0) {
+            alert('파일에서 문장을 찾을 수 없습니다.');
+            return;
+        }
+
+        sentences = koreanSentences;
+        displaySentenceList();
+        
+        statusEl.textContent = `상태: ${koreanSentences.length}개의 한글 문장을 불러왔습니다. (${file.name})`;
     } catch (err) {
         console.error('File upload error:', err);
         statusEl.textContent = '상태: 파일 로드 실패 ❌';
@@ -919,29 +922,18 @@ async function handleFileUpload(e) {
     }
 }
 
-function displaySentenceList() {
-    sentenceList.innerHTML = '';
-
-    sentences.forEach((sentence, index) => {
-        const div = document.createElement('div');
-        div.className = 'sentence-item';
-        div.innerHTML = `<span class="sentence-number">${index + 1}</span>${sentence}`;
-        div.dataset.index = index;
-
-        div.addEventListener('click', () => {
-            selectSentence(index);
-        });
-
-        sentenceList.appendChild(div);
-    });
-
-    sentencePanel.style.display = 'block';
-    sentencePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
 function selectSentence(index) {
     selectedSentenceIndex = index;
-    japaneseEl.value = sentences[index];
+    const sentence = sentences[index];
+    
+    // 한글 문장인지 일본어 문장인지 확인
+    const isKorean = /[가-힣]/.test(sentence);
+    
+    if (isKorean) {
+        koreanEl.value = sentence;
+    } else {
+        japaneseEl.value = sentence;
+    }
 
     document.querySelectorAll('.sentence-item').forEach((item, i) => {
         if (i === index) {
@@ -954,8 +946,13 @@ function selectSentence(index) {
     clearPreview();
     statusEl.textContent = `상태: 문장 #${index + 1} 선택됨`;
 
-    japaneseEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    japaneseEl.focus();
+    if (isKorean) {
+        koreanEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        koreanEl.focus();
+    } else {
+        japaneseEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        japaneseEl.focus();
+    }
 }
 
 // ========== 예문 라이브러리 함수 ==========
