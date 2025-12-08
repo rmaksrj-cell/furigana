@@ -350,12 +350,6 @@
 </head>
 
 <body>
-    <div class="panel" id="sentencePanel" style="display:none;">
-        <h2 style="color: #10b981;">📋 문장 목록</h2>
-        <div class="hint" style="margin-bottom: 12px;">문장을 클릭하면 아래 입력창에 자동으로 입력됩니다.</div>
-        <div class="sentence-list-container" id="sentenceList"></div>
-    </div>
-
     <div class="panel">
         <h2>🇰🇷→🇯🇵 한국어→일본어 자동 번역 + 독음 분석기</h2>
         <div class="hint">한국어 문장을 입력하고 "일본어로 번역"을 누르면 자동으로 일본어로 번역되고, 형태소별로 히라가나 읽기와 한국어 발음을 생성합니다.</div>
@@ -369,6 +363,13 @@
     <div id="githubRepos" style="margin-top:10px;"></div>
     <div id="githubFiles" style="margin-top:10px;"></div>
 
+        <!-- ⭐ 여기에 문장 목록 패널 삽입 ⭐ -->
+        <div id="sentencePanel" style="display:none; margin-top: 20px;">
+            <h3 style="color: #10b981; margin: 0 0 12px 0;">📋 문장 목록</h3>
+            <div class="hint" style="margin-bottom: 12px;">문장을 클릭하면 아래 입력창에 자동으로 입력됩니다.</div>
+            <div class="sentence-list-container" id="sentenceList"></div>
+        </div>
+        
         <label>한국어 문장 입력</label>
         <textarea id="korean" rows="3" placeholder="예: 오늘 저녁은 무엇을 먹을까?">오늘 저녁은 무엇을 먹을까?</textarea>
 
