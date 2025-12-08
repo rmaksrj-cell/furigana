@@ -375,8 +375,11 @@
 
         <div class="controls">
             <button id="translateBtn">🔄 일본어로 번역</button>
+            <button id="replayBtn" class="btn-secondary" style="display:none;">🔊 다시 듣기</button>
             <button id="clear" class="btn-secondary">🔄 초기화</button>
         </div>
+
+        <div class="status" id="status">상태: 준비됨</div>
 
         <div class="status" id="status">상태: 준비됨</div>
 
@@ -426,8 +429,11 @@
         let apiResultData = [];
         let sentences = [];
         let selectedSentenceIndex = -1;
+        let lastKorean = '';
+        let lastJapanese = '';
 
         const statusEl = document.getElementById('status');
+
         const koreanEl = document.getElementById('korean');
         const preview = document.getElementById('preview');
         const translateBtn = document.getElementById('translateBtn');
@@ -440,10 +446,13 @@
         const sentencePanel = document.getElementById('sentencePanel');
         const translationBox = document.getElementById('translationBox');
         const translatedText = document.getElementById('translatedText');
+        const replayBtn = document.getElementById('replayBtn');
 
         translateBtn.addEventListener('click', handleTranslate);
         clearBtn.addEventListener('click', handleClear);
         fileInput.addEventListener('change', handleFileUpload);
+        replayBtn.addEventListener('click', handleReplay);
+
 
         async function handleTranslate() {
             const koreanText = koreanEl.value.trim();
@@ -476,6 +485,11 @@
                 }
 
                 const data = JSON.parse(responseText);
+
+                // 마지막 번역 결과 저장
+                lastKorean = koreanText;
+                lastJapanese = data.translatedText;
+                replayBtn.style.display = 'inline-block';
 
                 translatedText.textContent = data.translatedText;
                 translationBox.style.display = 'block';
@@ -628,6 +642,9 @@
             koreanEl.value = '';
             clearPreview();
             statusEl.textContent = '상태: 초기화됨';
+            replayBtn.style.display = 'none';
+            lastKorean = '';
+            lastJapanese = '';
         }
 
         function parseSrtFile(text) {
@@ -735,6 +752,39 @@
 
             koreanEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
             koreanEl.focus();
+        }
+
+        async function handleReplay() {
+            if (!lastKorean || !lastJapanese) {
+                alert('재생할 번역 결과가 없습니다.');
+                return;
+            }
+
+            replayBtn.disabled = true;
+            const originalText = statusEl.textContent;
+
+            try {
+                statusEl.textContent = '상태: 오디오 재생 중... (KR)';
+                await playAudio(lastKorean, 'ko');
+
+                await new Promise(r => setTimeout(r, 500));
+
+                statusEl.textContent = '상태: 오디오 재생 중... (JP 1/2)';
+                await playAudio(lastJapanese, 'ja');
+
+                await new Promise(r => setTimeout(r, 500));
+
+                statusEl.textContent = '상태: 오디오 재생 중... (JP 2/2)';
+                await playAudio(lastJapanese, 'ja');
+
+                statusEl.textContent = '상태: 재생 완료!';
+            } catch (e) {
+                console.error('Replay error:', e);
+                statusEl.textContent = '상태: 재생 실패';
+                alert('오디오 재생 중 오류가 발생했습니다.');
+            } finally {
+                replayBtn.disabled = false;
+            }
         }
 
         async function playAudio(text, lang) {
