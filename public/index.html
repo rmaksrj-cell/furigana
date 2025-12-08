@@ -620,7 +620,7 @@
             const pronunciations = arr.map(item => item.kr).join(' ');
             document.getElementById('finalKr').textContent = pronunciations;
 
-            const japaneseWithSlash = arr.map(item => item.jp).join('<span style="color:#000000; padding:0 4px;">•</span>');
+            const japaneseWithSlash = arr.map(item => item.jp).join('<span style="color:#FF9800; padding:0 4px;">•</span>');
             document.getElementById('finalJp').innerHTML = japaneseWithSlash;
 
             const readingsWithSlash = arr.map(item => item.read).join('<span style="color:#000000; padding:0 4px;">•</span>');
